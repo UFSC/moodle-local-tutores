@@ -14,6 +14,6 @@ class create_groups_form extends moodleform {
         $mform->addElement('text', 'nome', get_string('nome_grupo', 'tool_tutores'), array('size' => 80));
         $mform->addElement('static', 'curso', get_string('curso', 'tool_tutores'), $category);
 
-        $this->add_action_buttons(false, get_string('add'));
+        $this->add_action_buttons(true, get_string('add'));
     }
 }

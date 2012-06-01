@@ -1,32 +1,33 @@
 <?php
-
 require_once('../../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->dirroot . '/' . $CFG->admin . '/roles/lib.php');
 require_once('locallib.php');
+
 
 require_login();
 require_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM));
 admin_externalpage_setup('tooltutores');
 
 $renderer = $PAGE->get_renderer('tool_tutores');
-$groupid = optional_param('id', null, PARAM_INT);
 
-if (empty($groupid)) {
-  echo $renderer->assign_page();
-} else {
-  
-  // Select de usuários
-  $admisselector = new admins_existing_selector();
-  $admisselector->set_extra_fields(array('username', 'email'));
+// Select de usuários
 
-  $potentialadmisselector = new admins_potential_selector();
-  $potentialadmisselector->set_extra_fields(array('username', 'email'));
+$admisselector = new admins_existing_selector();
+$admisselector->set_extra_fields(array('username', 'email'));
 
-  echo $renderer->page_header('assign');
-  ?>
+$potentialadmisselector = new admins_potential_selector();
+$potentialadmisselector->set_extra_fields(array('username', 'email'));
 
+//
+// Output
+//
+// Cabeçalho
 
+echo $renderer->page_header('permission');
+
+// Conteúdo
+?>
 <div id="addadmisform">
   <?php echo $OUTPUT->heading(get_string('definir_permissoes_curso', 'tool_tutores', 'Saúde da Família'), 3); ?>
 
@@ -38,7 +39,7 @@ if (empty($groupid)) {
         <tr>
           <td id='existingcell'>
             <p>
-              <label for="removeselect">Membros do grupo de tutoria</label>
+              <label for="removeselect">Administradores dos grupos de tutoria</label>
             </p>
             <?php $admisselector->display(); ?>
           </td>
@@ -55,7 +56,7 @@ if (empty($groupid)) {
 
           <td id='potentialcell'>
             <p>
-              <label for="addselect">Possíveis usuários</label>
+              <label for="addselect">Possíveis administradores</label>
             </p>
             <?php $potentialadmisselector->display(); ?>
           </td>
@@ -66,5 +67,5 @@ if (empty($groupid)) {
 </div>
 
 <?php
-  echo $renderer->page_footer();
-}
+// Restante da página
+echo $renderer->page_footer();
