@@ -9,4 +9,6 @@ require_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM));
 admin_externalpage_setup('tooltutores');
 
 $renderer = $PAGE->get_renderer('tool_tutores');
-echo $renderer->index_page();
+
+$cursos = get_grupos_tutoria();
+echo $renderer->index_page($cursos);

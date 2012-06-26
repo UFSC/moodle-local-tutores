@@ -1,6 +1,7 @@
 <?php
 require_once('../../../config.php');
 require_once($CFG->libdir.'/adminlib.php');
+require_once('locallib.php');
 require_once('creategroups_form.php');
 
 require_login();

@@ -4,6 +4,8 @@ defined('MOODLE_INTERNAL') || die();
 
 class tool_tutores_renderer extends plugin_renderer_base {
 
+    private $curso_ativo = null;
+
     public function assign_page() {
         // Tabela
         $table = new html_table();
@@ -25,7 +27,8 @@ class tool_tutores_renderer extends plugin_renderer_base {
         return $output;
     }
 
-    public function index_page() {
+    public function index_page($grupos) {
+
         // Tabela
         $table = new html_table();
         $table->head = array(get_string('grupos_tutoria', 'tool_tutores'), get_string('edit'));
@@ -33,15 +36,12 @@ class tool_tutores_renderer extends plugin_renderer_base {
         $table->data = array();
 
         $controls = get_action_icon('groups.php', 'edit', get_string('edit'), get_string('edit')) . get_action_icon('#', 'delete', get_string('delete'), get_string('delete'));
-        $groups_add_url = new moodle_url('/admin/tool/tutores/groups.php');
+        $groups_add_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc_id' => $this->curso_ativo));
         $add_controls = $this->heading('<a href="' . $groups_add_url . '">' . get_string('addnewgroup', 'tool_tutores') . '</a>');
 
-        // Dummy data
-        $table->data[] = array('Grupo 1', $controls);
-        $table->data[] = array('Grupo 2', $controls);
-        $table->data[] = array('Grupo 3', $controls);
-        $table->data[] = array('Grupo 4', $controls);
-        $table->data[] = array('Grupo 5', $controls);
+        foreach($grupos as $grupo) {
+            $table->data[] = array($grupo->nome, $controls);
+        }
 
         // Output
         $output = $this->page_header('index');
@@ -53,22 +53,20 @@ class tool_tutores_renderer extends plugin_renderer_base {
     }
 
     public function page_header($currenttab) {
-        global $PAGE;
+        $this->init();
         $output = '';
+
+        // Configura seletor de cursos UFSC
+        $select = new single_select(new moodle_url('/admin/tool/tutores/index.php'), 'curso_ufsc_id', $this->cursos, $this->curso_ativo, null, 'switch_curso_ufsc');
+        $select->set_label(get_string('curso', 'tool_tutores') . ':');
+        $select->class = 'cursos_ufsc_select generalbox';
+
+        // Imprime cabeçalho da página
         $output .= $this->header();
         $output .= $this->heading(get_string('grupos_tutoria', 'tool_tutores'));
 
-        /// Print the category selector
-        $category = $PAGE->category;
-        $displaylist = array();
-        $notused = array();
-        make_categories_list($displaylist, $notused);
-
-        $select = new single_select(new moodle_url('/admin/tool/tutores/index.php'), 'category_id', $displaylist, $category->id, null, 'switchcategory');
-        $select->set_label(get_string('curso', 'tool_tutores') . ':');
-        $output .= '<div class="navbutton">';
+        // Imprime seletor de curso UFSC ativo
         $output .= $this->render($select);
-        $output .= '</div>';
 
         $toprow = array();
         $toprow[] = new tabobject('index', new moodle_url('/admin/tool/tutores/index.php'), get_string('gerenciar_tutores', 'tool_tutores'));
@@ -83,6 +81,13 @@ class tool_tutores_renderer extends plugin_renderer_base {
 
     public function page_footer() {
         return $this->footer();
+    }
+
+    private function init() {
+
+        // Carrega informações sobre cursos UFSC
+        $this->cursos = get_cursos_ativos_list();
+        $this->curso_ativo = get_curso_ufsc_id();
     }
 
 }
