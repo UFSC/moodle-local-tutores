@@ -1,12 +1,18 @@
 <?php
 
-require_once($CFG->libdir.'/moodlelib.php');
+require_once($CFG->libdir . '/moodlelib.php');
 require_once('middlewarelib.php');
 
 function get_action_icon($url, $icon, $alt, $tooltip) {
     global $OUTPUT;
-    return '<a title="' . $tooltip . '" href="'. $url . '">' .
-            '<img src="' . $OUTPUT->pix_url('t/' . $icon) . '" class="iconsmall" alt="' . $alt . '" /></a> ';
+    return '<a title="' . $tooltip . '" href="' . $url . '">' .
+          '<img src="' . $OUTPUT->pix_url('t/' . $icon) . '" class="iconsmall" alt="' . $alt . '" /></a> ';
+}
+
+function get_grupo_tutoria($id) {
+    $middleware = Academico::singleton();
+    $sql = "SELECT * FROM {$middleware->table_grupos_tutoria} WHERE id=?";
+    return $middleware->db->get_record_sql($sql, array('id' => $id));
 }
 
 function get_grupos_tutoria() {

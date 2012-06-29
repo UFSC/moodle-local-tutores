@@ -1,6 +1,8 @@
 <?php
+
 $string['addnewgroup'] = 'Criar novo grupo';
 $string['curso'] = 'Curso';
+$string['cursos_ufsc'] = 'Cursos UFSC';
 $string['definir_permissoes'] = 'Definir permissões';
 $string['definir_permissoes_curso'] = 'Grupos de Tutoria do curso "{$a}"';
 $string['designar_participantes'] = 'Designar participantes';
