@@ -2,35 +2,53 @@
 require_once('../../../config.php');
 require_once($CFG->libdir.'/adminlib.php');
 require_once('locallib.php');
+require_once('group_form.php');
 
 require_login();
 require_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM));
 admin_externalpage_setup('tooltutores');
 
 $renderer = $PAGE->get_renderer('tool_tutores');
-$action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_STRING);
-
-// Imprime o cabeçalho
-echo $renderer->page_header('index');
+$curso_ufsc = get_curso_ufsc_id();
+$action = required_param('action', PARAM_ALPHANUMEXT);
+$base_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $curso_ufsc));
 
 switch ($action) {
     case 'add':
-        require_once('create_group_form.php');
-        $form = new create_group_form();
+		$base_url->param('action', 'add');
+        $form = new group_form($base_url);
+		
+		if ($form->is_cancelled()) {
+			redirect_to_gerenciar_tutores();
+		} elseif ($data = $form->get_data()) {
+			if (create_grupo_tutoria($curso_ufsc, $data->nome))
+				redirect_to_gerenciar_tutores();
+		}
+		
+		echo $renderer->page_header('index');
         $form->display();
         break;
 
     case 'edit':
-        require_once('edit_group_form.php');
-        $id_grupo = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        $id_grupo = required_param('id', PARAM_INT);
         $grupo = get_grupo_tutoria($id_grupo);
 
-        $form = new edit_group_form();
+		$base_url->params(array('action' => 'edit', 'id' => $id_grupo));
+        $form = new group_form($base_url);
+		if ($form->is_cancelled()) {
+			redirect_to_gerenciar_tutores();
+		} elseif ($data = $form->get_data()) {
+			if (update_grupo_tutoria($curso_ufsc, $id_grupo, $data->nome))
+				redirect_to_gerenciar_tutores();
+		}
+		
         $form->set_data(array('nome' => $grupo->nome));
+		echo $renderer->page_header('index');
         $form->display();
         break;
 
     default:
+		echo $renderer->page_header('index');
         print_error('invalid_action', 'tool_tutores');
         break;
 }

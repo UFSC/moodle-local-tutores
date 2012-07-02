@@ -47,7 +47,7 @@ class tool_tutores_renderer extends plugin_renderer_base {
         $table->data = array();
 
         foreach ($this->cursos as $id_curso => $nome_curso) {
-            $url = new moodle_url('/admin/tool/tutores/index.php?curso_ufsc_id=' . $id_curso);
+            $url = new moodle_url('/admin/tool/tutores/index.php?curso_ufsc=' . $id_curso);
             $table->data[] = array(html_writer::link($url, $nome_curso));
         }
 
@@ -63,7 +63,7 @@ class tool_tutores_renderer extends plugin_renderer_base {
      * @param mixed $grupos Grupos de Tutoria (BD)
      * @return string HTML renderizado
      */
-    public function index_page($grupos) {
+    public function list_groups_page($grupos) {
 
         // Tabela
         $table = new html_table();
@@ -71,12 +71,12 @@ class tool_tutores_renderer extends plugin_renderer_base {
         $table->tablealign = 'center';
         $table->data = array();
 
-        $add_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc_id' => $this->curso_ativo, 'action' => 'add'));
+        $add_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'action' => 'add'));
         $add_controls = $this->heading('<a href="' . $add_url . '">' . get_string('addnewgroup', 'tool_tutores') . '</a>');
 
         foreach ($grupos as $grupo) {
-            $edit_url = new moodle_url('/admin/tool/tutores/groups.php', array('id' => $grupo->id, 'action' => 'edit'));
-            $delete_url = new moodle_url('/admin/tool/tutores/groups.php', array('id' => $grupo->id, 'action' => 'delete'));
+            $edit_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->id, 'action' => 'edit'));
+            $delete_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->id, 'action' => 'delete'));
             $controls = get_action_icon($edit_url, 'edit', get_string('edit'), get_string('edit')) .
                   get_action_icon($delete_url, 'delete', get_string('delete'), get_string('delete'));
 
@@ -96,7 +96,7 @@ class tool_tutores_renderer extends plugin_renderer_base {
         $output = '';
 
         // Configura seletor de cursos UFSC
-        $select = new single_select(new moodle_url('/admin/tool/tutores/index.php'), 'curso_ufsc_id', $this->cursos, $this->curso_ativo, null, 'switch_curso_ufsc');
+        $select = new single_select(new moodle_url('/admin/tool/tutores/index.php'), 'curso_ufsc', $this->cursos, $this->curso_ativo, null, 'switch_curso_ufsc');
         $select->set_label(get_string('curso', 'tool_tutores') . ':');
         $select->class = 'cursos_ufsc_select generalbox';
 
@@ -108,9 +108,9 @@ class tool_tutores_renderer extends plugin_renderer_base {
         $output .= $this->render($select);
 
         $toprow = array();
-        $toprow[] = new tabobject('index', new moodle_url('/admin/tool/tutores/index.php'), get_string('gerenciar_tutores', 'tool_tutores'));
-        $toprow[] = new tabobject('assign', new moodle_url('/admin/tool/tutores/assign.php'), get_string('designar_participantes', 'tool_tutores'));
-        $toprow[] = new tabobject('permission', new moodle_url('/admin/tool/tutores/permissions.php'), get_string('definir_permissoes', 'tool_tutores'));
+        $toprow[] = new tabobject('index', new moodle_url('/admin/tool/tutores/index.php', array('curso_ufsc' => $this->curso_ativo)), get_string('gerenciar_tutores', 'tool_tutores'));
+        $toprow[] = new tabobject('assign', new moodle_url('/admin/tool/tutores/assign.php', array('curso_ufsc' => $this->curso_ativo)), get_string('designar_participantes', 'tool_tutores'));
+        $toprow[] = new tabobject('permission', new moodle_url('/admin/tool/tutores/permissions.php', array('curso_ufsc' => $this->curso_ativo)), get_string('definir_permissoes', 'tool_tutores'));
         $tabs = array($toprow);
 
         $output .= print_tabs($tabs, $current_tab, null, null, true);

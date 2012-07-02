@@ -15,10 +15,10 @@ function get_grupo_tutoria($id) {
     return $middleware->db->get_record_sql($sql, array('id' => $id));
 }
 
-function get_grupos_tutoria() {
+function get_grupos_tutoria($curso_ufsc) {
     $middleware = Academico::singleton();
-    $sql = "SELECT * FROM {$middleware->table_grupos_tutoria}";
-    return $middleware->db->get_records_sql($sql);
+    $sql = "SELECT * FROM {$middleware->table_grupos_tutoria} WHERE curso=? ORDER BY nome";
+    return $middleware->db->get_records_sql($sql, array('curso' => $curso_ufsc));
 }
 
 function get_cursos_ativos_list() {
@@ -28,5 +28,21 @@ function get_cursos_ativos_list() {
 }
 
 function get_curso_ufsc_id() {
-    return filter_input(INPUT_GET, 'curso_ufsc_id', FILTER_VALIDATE_INT);
+    return optional_param('curso_ufsc', null, PARAM_INT);
+}
+
+function create_grupo_tutoria($curso_ufsc, $nome) {
+	$middleware = Academico::singleton();
+	$sql = "INSERT INTO {$middleware->table_grupos_tutoria} (nome, curso) VALUES(?,?)";
+	return $middleware->db->execute($sql, array($nome, $curso_ufsc));
+}
+
+function update_grupo_tutoria($curso_ufsc, $grupo, $nome) {
+	$middleware = Academico::singleton();
+	$sql = "UPDATE {$middleware->table_grupos_tutoria} SET nome=? WHERE curso=? AND id=?";
+	return $middleware->db->execute($sql, array($nome, $curso_ufsc, $grupo));
+}
+
+function redirect_to_gerenciar_tutores() {
+	redirect(new moodle_url('/admin/tool/tutores/index.php', array('curso_ufsc' => get_curso_ufsc_id())));
 }
