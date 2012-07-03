@@ -15,16 +15,17 @@ class tool_tutores_renderer extends plugin_renderer_base {
     }
 
     public function assign_page() {
+        $grupos = get_grupos_tutoria($this->curso_ativo);
+        
         // Tabela
         $table = new html_table();
         $table->head = array(get_string('grupos_tutoria', 'tool_tutores'), get_string('member_count', 'tool_tutores'), get_string('tutores', 'tool_tutores'));
         $table->tablealign = 'center';
         $table->data = array();
 
-        // Dummy data
-        for ($i = 1; $i <= 20; $i++) {
-            $url = new moodle_url('/admin/tool/tutores/assign.php?id=' . $i);
-            $table->data[] = array(html_writer::link($url, "Grupo {$i}"), rand(40, 50), rand(1, 3));
+        foreach ($grupos as $grupo) {
+            $url = new moodle_url('/admin/tool/tutores/assign.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->id));
+            $table->data[] = array(html_writer::link($url, $grupo->nome), rand(40, 50), rand(1, 3));
         }
 
         // Output
