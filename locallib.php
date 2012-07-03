@@ -3,6 +3,18 @@
 require_once($CFG->libdir . '/moodlelib.php');
 require_once('middlewarelib.php');
 
+function create_grupo_tutoria($curso_ufsc, $nome) {
+	$middleware = Academico::singleton();
+	$sql = "INSERT INTO {$middleware->table_grupos_tutoria} (nome, curso) VALUES(?,?)";
+	return $middleware->db->execute($sql, array($nome, $curso_ufsc));
+}
+
+function delete_grupo_tutoria($curso_ufsc, $grupo) {
+	$middleware = Academico::singleton();
+	$sql = "DELETE FROM {$middleware->table_grupos_tutoria} WHERE curso=? AND id=?";
+	return $middleware->db->execute($sql, array($curso_ufsc, $grupo));	
+}
+
 function get_action_icon($url, $icon, $alt, $tooltip) {
     global $OUTPUT;
     return '<a title="' . $tooltip . '" href="' . $url . '">' .
@@ -31,11 +43,6 @@ function get_curso_ufsc_id() {
     return optional_param('curso_ufsc', null, PARAM_INT);
 }
 
-function create_grupo_tutoria($curso_ufsc, $nome) {
-	$middleware = Academico::singleton();
-	$sql = "INSERT INTO {$middleware->table_grupos_tutoria} (nome, curso) VALUES(?,?)";
-	return $middleware->db->execute($sql, array($nome, $curso_ufsc));
-}
 
 function update_grupo_tutoria($curso_ufsc, $grupo, $nome) {
 	$middleware = Academico::singleton();

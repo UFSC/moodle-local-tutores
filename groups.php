@@ -46,6 +46,20 @@ switch ($action) {
 		echo $renderer->page_header('index');
         $form->display();
         break;
+		
+	case 'delete':
+		// TODO: Acrescentar tela de confirmação de remoção
+		$id_grupo = required_param('id', PARAM_INT);
+		$grupo = get_grupo_tutoria($id_grupo);
+		
+		if (empty($grupo)) {
+			echo $renderer->page_header('index');
+			print_error('invalid_grupo_tutoria', 'tool_tutores');
+		} else {
+			delete_grupo_tutoria($curso_ufsc, $id_grupo);
+			redirect_to_gerenciar_tutores();
+		}
+		break;
 
     default:
 		echo $renderer->page_header('index');
