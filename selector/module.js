@@ -139,7 +139,7 @@ M.core_user.init_user_selector = function (Y, name, hash, extrafields, lastsearc
                 return;
             }
 
-            Y.io(M.cfg.wwwroot + '/user/selector/search.php', {
+            Y.io(M.cfg.wwwroot + '/admin/tool/tutores/selector/search.php', {
                 method: 'POST',
                 data: 'selectorid='+hash+'&sesskey='+M.cfg.sesskey+'&search='+value + '&userselector_searchanywhere=' + this.get_option('searchanywhere'),
                 on: {
@@ -175,7 +175,7 @@ M.core_user.init_user_selector = function (Y, name, hash, extrafields, lastsearc
 
             // If we are in developer debug mode, output a link to help debug the failure.
             if (M.cfg.developerdebug) {
-                this.searchfield.insert(Y.Node.create('<a href="'+M.cfg.wwwroot +'/user/selector/search.php?selectorid='+hash+'&sesskey='+M.cfg.sesskey+'&search='+this.get_search_text()+'&debug=1">Ajax call failed. Click here to try the search call directly.</a>'));
+                this.searchfield.insert(Y.Node.create('<a href="'+M.cfg.wwwroot +'/admin/tool/tutores/selector/search.php?selectorid='+hash+'&sesskey='+M.cfg.sesskey+'&search='+this.get_search_text()+'&debug=1">Ajax call failed. Click here to try the search call directly.</a>'));
             }
         },
         /**
