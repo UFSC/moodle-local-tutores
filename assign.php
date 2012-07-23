@@ -22,7 +22,7 @@ if (empty($groupid)) {
     $admisselector = new admins_existing_selector();
     $admisselector->set_extra_fields(array('username', 'email'));
 
-    $potentialadmisselector = new tutores_potential_selector();
+    $potentialadmisselector = new usuarios_tutoria_potential_selector();
     $potentialadmisselector->set_extra_fields(array('username', 'email'));
 
     echo $renderer->page_header('assign');

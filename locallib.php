@@ -54,7 +54,7 @@ function redirect_to_gerenciar_tutores() {
     redirect(new moodle_url('/admin/tool/tutores/index.php', array('curso_ufsc' => get_curso_ufsc_id())));
 }
 
-class tutores_potential_selector extends user_selector_base {
+class usuarios_tutoria_potential_selector extends user_selector_base {
 
     /**
      * @param string $name control name
@@ -63,27 +63,32 @@ class tutores_potential_selector extends user_selector_base {
     public function __construct($tutores_ids = null) {
         global $CFG, $USER;
 
-        // Precisamos sobrescrever o arquivo Javascript responsavel pelo seletor ajax
-        self::$jsmodule['fullpath'] = '/admin/tool/tutores/selector/module.js';
-
         parent::__construct('addselect', array('multiselect' => false, 'exclude' => $tutores_ids));
     }
 
     public function find_users($search) {
         global $CFG, $DB;
 
+        $middleware = Academico::singleton();
+
         $papeis_tutores = '46';
 
-        list($wherecondition, $params) = $this->search_sql($search, '');
+        list($wherecondition, $params) = $this->search_sql($search, 'u');
 
-        $fields = 'SELECT ' . $this->required_fields_sql('');
+        $fields = 'SELECT ' . $this->required_fields_sql('u');
         $countfields = 'SELECT COUNT(1)';
 
-        $sql = " FROM {user}
-                WHERE $wherecondition AND mnethostid = :localmnet";
+        $sql = " FROM {user} u
+                 JOIN {$middleware->view_usuarios} mid_u
+                USING (username)
+                WHERE $wherecondition
+                  AND mnethostid = :localmnet
+                  AND mid_u.papel_principal IN (:papeis)";
+
         $order = ' ORDER BY lastname ASC, firstname ASC';
 
         $params['localmnet'] = $CFG->mnet_localhost_id; // it could be dangerous to make remote users admins and also this could lead to other problems
+        $params['papeis'] = $papeis_tutores;
         // Check to see if there are too many to show sensibly.
         if (!$this->is_validating()) {
             $potentialcount = $DB->count_records_sql($countfields . $sql, $params);
@@ -110,7 +115,7 @@ class tutores_potential_selector extends user_selector_base {
     protected function get_options() {
         global $CFG;
         $options = parent::get_options();
-        $options['file'] = $CFG->admin . '/roles/lib.php';
+        $options['file'] = $CFG->admin . '/tool/tutores/locallib.php';
         return $options;
     }
 
