@@ -24,13 +24,13 @@ function get_action_icon($url, $icon, $alt, $tooltip) {
 
 function get_grupo_tutoria($id) {
     $middleware = Academico::singleton();
-    $sql = "SELECT * FROM {$middleware->table_grupos_tutoria} WHERE id=?";
+    $sql = "SELECT * FROM {$middleware->table_grupos_tutoria} WHERE id=:id";
     return $middleware->db->get_record_sql($sql, array('id' => $id));
 }
 
 function get_grupos_tutoria($curso_ufsc) {
     $middleware = Academico::singleton();
-    $sql = "SELECT * FROM {$middleware->table_grupos_tutoria} WHERE curso=? ORDER BY nome";
+    $sql = "SELECT * FROM {$middleware->table_grupos_tutoria} WHERE curso=:curso ORDER BY nome";
     return $middleware->db->get_records_sql($sql, array('curso' => $curso_ufsc));
 }
 
