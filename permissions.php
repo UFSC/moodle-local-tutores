@@ -29,41 +29,45 @@ echo $renderer->page_header('permission');
 // Conteúdo
 ?>
 <div id="addadmisform">
-  <?php echo $OUTPUT->heading(get_string('definir_permissoes_curso', 'tool_tutores', 'Saúde da Família'), 3); ?>
+    <?php echo $OUTPUT->heading(get_string('definir_permissoes_curso', 'tool_tutores', 'Saúde da Família'), 3); ?>
 
-  <form id="assignform" method="post" action="<?php echo $PAGE->url ?>">
-    <div>
-      <input type="hidden" name="sesskey" value="<?php p(sesskey()); ?>" />
+    <form id="assignform" method="post" action="<?php echo $PAGE->url ?>">
+        <div>
+            <input type="hidden" name="sesskey" value="<?php p(sesskey()); ?>"/>
 
-      <table class="generaltable generalbox roleassigntable boxaligncenter" summary="">
-        <tr>
-          <td id='existingcell'>
-            <p>
-              <label for="removeselect">Administradores dos grupos de tutoria</label>
-            </p>
-            <?php $admisselector->display(); ?>
-          </td>
+            <table class="generaltable generalbox roleassigntable boxaligncenter" summary="">
+                <tr>
+                    <td id='existingcell'>
+                        <p>
+                            <label for="removeselect">Administradores dos grupos de tutoria</label>
+                        </p>
+                        <?php $admisselector->display(); ?>
+                    </td>
 
-          <td id="buttonscell">
-            <div id="addcontrols">
-              <input name="add" id="add" type="submit" value="<?php echo $OUTPUT->larrow() . '&nbsp;' . get_string('add'); ?>" title="<?php print_string('add'); ?>" /><br />
-            </div>
+                    <td id="buttonscell">
+                        <div id="addcontrols">
+                            <input name="add" id="add" type="submit"
+                                   value="<?php echo $OUTPUT->larrow() . '&nbsp;' . get_string('add'); ?>"
+                                   title="<?php print_string('add'); ?>"/><br/>
+                        </div>
 
-            <div id="removecontrols">
-              <input name="remove" id="remove" type="submit" value="<?php echo get_string('remove') . '&nbsp;' . $OUTPUT->rarrow(); ?>" title="<?php print_string('remove'); ?>" />
-            </div>
-          </td>
+                        <div id="removecontrols">
+                            <input name="remove" id="remove" type="submit"
+                                   value="<?php echo get_string('remove') . '&nbsp;' . $OUTPUT->rarrow(); ?>"
+                                   title="<?php print_string('remove'); ?>"/>
+                        </div>
+                    </td>
 
-          <td id='potentialcell'>
-            <p>
-              <label for="addselect">Possíveis administradores</label>
-            </p>
-            <?php $potentialadmisselector->display(); ?>
-          </td>
-        </tr>
-      </table>
-    </div>
-  </form>
+                    <td id='potentialcell'>
+                        <p>
+                            <label for="addselect">Possíveis administradores</label>
+                        </p>
+                        <?php $potentialadmisselector->display(); ?>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
 </div>
 
 <?php

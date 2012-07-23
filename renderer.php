@@ -16,7 +16,7 @@ class tool_tutores_renderer extends plugin_renderer_base {
 
     public function assign_page() {
         $grupos = get_grupos_tutoria($this->curso_ativo);
-        
+
         // Tabela
         $table = new html_table();
         $table->head = array(get_string('grupos_tutoria', 'tool_tutores'), get_string('member_count', 'tool_tutores'), get_string('tutores', 'tool_tutores'));
@@ -79,7 +79,7 @@ class tool_tutores_renderer extends plugin_renderer_base {
             $edit_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->id, 'action' => 'edit'));
             $delete_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->id, 'action' => 'delete'));
             $controls = get_action_icon($edit_url, 'edit', get_string('edit'), get_string('edit')) .
-                  get_action_icon($delete_url, 'delete', get_string('delete'), get_string('delete'));
+                    get_action_icon($delete_url, 'delete', get_string('delete'), get_string('delete'));
 
             $table->data[] = array($grupo->nome, $controls);
         }

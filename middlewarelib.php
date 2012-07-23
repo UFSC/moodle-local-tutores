@@ -20,6 +20,7 @@ class Academico {
 
     /**
      * Singleton - Retorna instância única da classe
+     *
      * @return Academico instância da classe
      */
     public static function singleton() {
@@ -48,7 +49,6 @@ class Academico {
 
     /**
      * Método mágico para retornar nomes de views e tabelas como parâmetros.
-     *
      * Exemplo de utilização (contexto = Presencial):
      * <code>
      * $a = new Academico();
@@ -57,7 +57,7 @@ class Academico {
      * </code>
      */
     function __get($attribute) {
-        $a = split('_', $attribute);
+        $a = explode('_', $attribute);
         $prefix = array_shift($a);
 
         if ($prefix == 'table') {
@@ -70,7 +70,7 @@ class Academico {
 
     private function table_name($array_names) {
         $table_name = "{$this->dbname}.";
-        foreach($array_names as $name) {
+        foreach ($array_names as $name) {
             $table_name .= ucfirst($name);
         }
         return $table_name;
@@ -78,18 +78,19 @@ class Academico {
 
     private function view_name($array_names) {
         $table_name = "{$this->dbname}.View_{$this->contexto}";
-        foreach($array_names as $name) {
-            $table_name .= '_'.ucfirst($name);
+        foreach ($array_names as $name) {
+            $table_name .= '_' . ucfirst($name);
         }
         return $table_name;
     }
 
     private function view_geral_name($array_names) {
         $table_name = "{$this->dbname}.View_Geral";
-        foreach($array_names as $name) {
-            $table_name .= '_'.ucfirst($name);
+        foreach ($array_names as $name) {
+            $table_name .= '_' . ucfirst($name);
         }
         return $table_name;
     }
 }
+
 ?>

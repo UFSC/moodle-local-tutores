@@ -5,21 +5,21 @@ require_once('middlewarelib.php');
 require_once($CFG->dirroot . '/' . $CFG->admin . '/roles/lib.php');
 
 function create_grupo_tutoria($curso_ufsc, $nome) {
-	$middleware = Academico::singleton();
-	$sql = "INSERT INTO {$middleware->table_grupos_tutoria} (nome, curso) VALUES(?,?)";
-	return $middleware->db->execute($sql, array($nome, $curso_ufsc));
+    $middleware = Academico::singleton();
+    $sql = "INSERT INTO {$middleware->table_grupos_tutoria} (nome, curso) VALUES(?,?)";
+    return $middleware->db->execute($sql, array($nome, $curso_ufsc));
 }
 
 function delete_grupo_tutoria($curso_ufsc, $grupo) {
-	$middleware = Academico::singleton();
-	$sql = "DELETE FROM {$middleware->table_grupos_tutoria} WHERE curso=? AND id=?";
-	return $middleware->db->execute($sql, array($curso_ufsc, $grupo));	
+    $middleware = Academico::singleton();
+    $sql = "DELETE FROM {$middleware->table_grupos_tutoria} WHERE curso=? AND id=?";
+    return $middleware->db->execute($sql, array($curso_ufsc, $grupo));
 }
 
 function get_action_icon($url, $icon, $alt, $tooltip) {
     global $OUTPUT;
     return '<a title="' . $tooltip . '" href="' . $url . '">' .
-          '<img src="' . $OUTPUT->pix_url('t/' . $icon) . '" class="iconsmall" alt="' . $alt . '" /></a> ';
+            '<img src="' . $OUTPUT->pix_url('t/' . $icon) . '" class="iconsmall" alt="' . $alt . '" /></a> ';
 }
 
 function get_grupo_tutoria($id) {
@@ -44,11 +44,10 @@ function get_curso_ufsc_id() {
     return optional_param('curso_ufsc', null, PARAM_INT);
 }
 
-
 function update_grupo_tutoria($curso_ufsc, $grupo, $nome) {
-	$middleware = Academico::singleton();
-	$sql = "UPDATE {$middleware->table_grupos_tutoria} SET nome=? WHERE curso=? AND id=?";
-	return $middleware->db->execute($sql, array($nome, $curso_ufsc, $grupo));
+    $middleware = Academico::singleton();
+    $sql = "UPDATE {$middleware->table_grupos_tutoria} SET nome=? WHERE curso=? AND id=?";
+    return $middleware->db->execute($sql, array($nome, $curso_ufsc, $grupo));
 }
 
 function redirect_to_gerenciar_tutores() {

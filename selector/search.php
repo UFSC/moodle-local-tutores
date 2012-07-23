@@ -23,8 +23,8 @@
  * @package user
  */
 
-require_once(dirname(__FILE__) . '/../../config.php');
-require_once($CFG->dirroot . '/user/selector/lib.php');
+require_once(dirname(__FILE__) . '/../../../../config.php');
+require_once($CFG->dirroot . '/admin/tool/tutores/locallib.php');
 
 $PAGE->set_context(get_context_instance(CONTEXT_SYSTEM));
 $PAGE->set_url('/user/selector/search.php');
@@ -40,7 +40,7 @@ if (debugging('', DEBUG_DEVELOPER) && optional_param('debug', false, PARAM_BOOL)
 }
 
 // Check access.
-if (!isloggedin()) {;
+if (!isloggedin()) {
     print_error('mustbeloggedin');
 }
 if (!confirm_sesskey()) {
