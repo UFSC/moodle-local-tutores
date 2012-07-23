@@ -60,12 +60,17 @@ class Academico {
         $a = explode('_', $attribute);
         $prefix = array_shift($a);
 
-        if ($prefix == 'table') {
-            return $this->table_name($a);
-        } else if ($prefix == 'view') {
-            return $this->view_name($a);
+        switch ($prefix) {
+            case 'table':
+                return $this->table_name($a);
+                break;
+            case 'view':
+                return $this->view_name($a);
+                break;
+            case 'geral':
+                return $this->view_geral_name($a);
+                break;
         }
-
     }
 
     private function table_name($array_names) {
@@ -92,5 +97,3 @@ class Academico {
         return $table_name;
     }
 }
-
-?>
