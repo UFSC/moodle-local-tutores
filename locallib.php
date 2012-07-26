@@ -61,8 +61,6 @@ class usuarios_tutoria_potential_selector extends user_selector_base {
      * @param array $options should have two elements with keys groupid and courseid.
      */
     public function __construct($tutores_ids = null) {
-        global $CFG, $USER;
-
         parent::__construct('addselect', array('multiselect' => false, 'exclude' => $tutores_ids));
     }
 
@@ -71,7 +69,15 @@ class usuarios_tutoria_potential_selector extends user_selector_base {
 
         $middleware = Academico::singleton();
 
-        $papeis_tutores = '46';
+        $allowed_roles = explode(',', $CFG->tutores_allowed_roles);
+
+        // BUG: O moodle não aceita um array como parâmetro para uma prepared query
+        // portanto estamos emulando na mão a colocação das aspas para clausula IN
+        $allowed_roles_sql = array();
+        foreach ($allowed_roles as $role) {
+            $allowed_roles_sql[]= "'$role'";
+        }
+        $allowed_roles_sql = implode(',', $allowed_roles_sql);
 
         list($wherecondition, $params) = $this->search_sql($search, 'u');
 
@@ -83,12 +89,13 @@ class usuarios_tutoria_potential_selector extends user_selector_base {
                 USING (username)
                 WHERE $wherecondition
                   AND mnethostid = :localmnet
-                  AND mid_u.papel_principal IN (:papeis)";
+                  AND mid_u.papel_principal IN ({$allowed_roles_sql})";
 
         $order = ' ORDER BY lastname ASC, firstname ASC';
 
         $params['localmnet'] = $CFG->mnet_localhost_id; // it could be dangerous to make remote users admins and also this could lead to other problems
-        $params['papeis'] = $papeis_tutores;
+
+
         // Check to see if there are too many to show sensibly.
         if (!$this->is_validating()) {
             $potentialcount = $DB->count_records_sql($countfields . $sql, $params);
@@ -97,19 +104,24 @@ class usuarios_tutoria_potential_selector extends user_selector_base {
             }
         }
 
-        $availableusers = $DB->get_records_sql($fields . $sql . $order, $params);
+        $found_users = array();
+        foreach($allowed_roles as $role) {
+            $sql = " FROM {user} u
+                 JOIN {$middleware->view_usuarios} mid_u
+                USING (username)
+                WHERE $wherecondition
+                  AND mnethostid = :localmnet
+                  AND mid_u.papel_principal=:papel";
 
-        if (empty($availableusers)) {
-            return array();
+            $params['papel'] = $role;
+            $found_users[$role] = $DB->get_records_sql($fields . $sql . $order, $params);
+            if (empty($found_users)) {
+                $found_users[$role] = array();
+            }
         }
 
-        if ($search) {
-            $groupname = get_string('potusersmatching', 'role', $search);
-        } else {
-            $groupname = get_string('potusers', 'role');
-        }
+        return $found_users;
 
-        return array($groupname => $availableusers);
     }
 
     protected function get_options() {
@@ -120,4 +132,3 @@ class usuarios_tutoria_potential_selector extends user_selector_base {
     }
 
 }
-
