@@ -19,7 +19,7 @@ if (empty($groupid)) {
 } else {
 
     // Select de usuários
-    $admisselector = new admins_existing_selector();
+    $admisselector = new usuarios_tutoria_existing_selector();
     $admisselector->set_extra_fields(array('username', 'email'));
 
     $potentialadmisselector = new usuarios_tutoria_potential_selector();
