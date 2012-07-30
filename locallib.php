@@ -223,7 +223,6 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
                       AND pg.papel=:papel";
 
             $params['papel'] = $role_key;
-            var_dump($params);
             $found_users[$role_name] = $DB->get_records_sql($fields . $sql . $order, $params);
             if (empty($found_users)) {
                 $found_users[$role_name] = array();

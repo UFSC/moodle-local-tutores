@@ -7,7 +7,7 @@ $ADMIN->add('grupostutoria', new admin_externalpage('tooltutores', get_string('g
     "$CFG->wwwroot/$CFG->admin/tool/tutores/index.php"));
 
 if ($hassiteconfig) {
-    require_once('locallib.php');
+    require_once("{$CFG->dirroot}/admin/tool/tutores/locallib.php");
     $papeis = get_papeis_disponiveis();
 
     $settings = new admin_settingpage('grupos_tutoria_settings', get_string('grupos_tutoria_settings', 'tool_tutores'));
