@@ -28,24 +28,38 @@ if (empty($groupid)) {
     $potentialmembersselector = new usuarios_tutoria_potential_selector('addmembergrupotutoria', $options);
     $potentialmembersselector->set_extra_fields(array('username', 'email'));
 
-    // Processa requisições de alteração de membros em grupos
+    // Processa requisições de inclusão de membros em grupos
     if (optional_param('add', false, PARAM_BOOL) && confirm_sesskey()) {
         $userstoassign = $potentialmembersselector->get_selected_users();
         if (!empty($userstoassign)) {
 
+            // TODO: verificar permissões
             foreach ($userstoassign as $adduser) {
-                $allow = true;
-
-                if ($allow) {
-                    add_member_grupo_tutoria($groupid, $adduser->username);
-                }
+                add_member_grupo_tutoria($groupid, $adduser->username);
             }
 
             $potentialmembersselector->invalidate_selected_users();
             $membersselector->invalidate_selected_users();
 
-            //$rolename = $assignableroles[$roleid];
+            // TODO: logar inscrições
             //add_to_log($course->id, 'role', 'assign', 'admin/roles/assign.php?contextid='.$context->id.'&roleid='.$roleid, $rolename, '', $USER->id);
+        }
+    }
+
+    // Processa requisições de exclusão de membros em grupos
+    if (optional_param('remove', false, PARAM_BOOL) && confirm_sesskey()) {
+        $userstounassign = $membersselector->get_selected_users();
+        if (!empty($userstounassign)) {
+
+            foreach ($userstounassign as $removeuser) {
+                remove_member_grupo_tutoria($groupid, $removeuser->username);
+            }
+
+            $potentialmembersselector->invalidate_selected_users();
+            $membersselector->invalidate_selected_users();
+
+            // TODO: logar desinscrições
+            //add_to_log($course->id, 'role', 'unassign', 'admin/roles/assign.php?contextid='.$context->id.'&roleid='.$roleid, $rolename, '', $USER->id);
         }
     }
 

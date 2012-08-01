@@ -4,6 +4,13 @@ require_once($CFG->libdir . '/moodlelib.php');
 require_once('middlewarelib.php');
 require_once($CFG->dirroot . '/' . $CFG->admin . '/roles/lib.php');
 
+/**
+ * Adiciona uma pessoa a um grupo de tutoria
+ *
+ * @param $grupo id do grupo de tutoria
+ * @param $matricula código de matrícula do participante
+ * @return bool
+ */
 function add_member_grupo_tutoria($grupo, $matricula) {
     $middleware = Academico::singleton();
     $sql = "INSERT INTO {$middleware->table_pessoas_funcoes_grupos_tutoria}
@@ -51,6 +58,40 @@ function get_cursos_ativos_list() {
 
 function get_curso_ufsc_id() {
     return optional_param('curso_ufsc', null, PARAM_INT);
+}
+
+/**
+ * Retorna a lista de participantes de um grupo de tutoria
+ *
+ * @param $grupo id do grupo de tutoria
+ * @return array lista de participantes ou false em caso de falha
+ */
+function get_members_grupo_tutoria($grupo) {
+    $middleware = Academico::singleton();
+
+    $sql = "SELECT u.*
+              FROM {user} u
+              JOIN {$middleware->table_pessoas_funcoes_grupos_tutoria} pg
+                ON (u.username=pg.matricula)
+             WHERE pg.grupo=:grupo";
+
+    $params = array('grupo' => $grupo);
+    return $middleware->db->get_records_sql($sql, $params);
+}
+
+/**
+ * Remove um participante de um grupo de tutoria
+ *
+ * @param $grupo id do grupo de tutoria
+ * @param $matricula código de matrícula do participante
+ * @return bool
+ */
+function remove_member_grupo_tutoria($grupo, $matricula) {
+    $middleware = Academico::singleton();
+    $sql = "DELETE FROM {$middleware->table_pessoas_funcoes_grupos_tutoria}
+                  WHERE grupo=:grupo AND matricula=:matricula";
+    $params = array('grupo' => $grupo, 'matricula' => $matricula);
+    return $middleware->db->execute($sql, $params);
 }
 
 /**
