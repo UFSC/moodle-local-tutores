@@ -172,7 +172,8 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
                     USING (username)
                     WHERE $wherecondition
                       AND mnethostid = :localmnet
-                      AND mid_u.papel_principal=:papel";
+                      AND mid_u.papel_principal=:papel
+                      AND u.username NOT IN (SELECT matricula FROM {$middleware->table_pessoas_funcoes_grupos_tutoria})";
 
             $params['papel'] = $role_key;
             $found_users[$role_name] = $DB->get_records_sql($fields . $sql . $order, $params);
