@@ -18,12 +18,36 @@ if (empty($groupid)) {
     echo $renderer->assign_page();
 } else {
 
-    // Select de usuários
-    $admisselector = new usuarios_tutoria_existing_selector();
-    $admisselector->set_extra_fields(array('username', 'email'));
+    $options = array('grupo' => $groupid);
 
-    $potentialadmisselector = new usuarios_tutoria_potential_selector();
-    $potentialadmisselector->set_extra_fields(array('username', 'email'));
+    // Select de usuários
+    $membersselector = new usuarios_tutoria_existing_selector('existingmembersgrupotutoria', $options);
+    $membersselector->set_extra_fields(array('username', 'email'));
+
+    // Select de possíveis usuários
+    $potentialmembersselector = new usuarios_tutoria_potential_selector('addmembergrupotutoria', $options);
+    $potentialmembersselector->set_extra_fields(array('username', 'email'));
+
+    // Processa requisições de alteração de membros em grupos
+    if (optional_param('add', false, PARAM_BOOL) && confirm_sesskey()) {
+        $userstoassign = $potentialmembersselector->get_selected_users();
+        if (!empty($userstoassign)) {
+
+            foreach ($userstoassign as $adduser) {
+                $allow = true;
+
+                if ($allow) {
+                    add_member_grupo_tutoria($groupid, $adduser->username);
+                }
+            }
+
+            $potentialmembersselector->invalidate_selected_users();
+            $membersselector->invalidate_selected_users();
+
+            //$rolename = $assignableroles[$roleid];
+            //add_to_log($course->id, 'role', 'assign', 'admin/roles/assign.php?contextid='.$context->id.'&roleid='.$roleid, $rolename, '', $USER->id);
+        }
+    }
 
     echo $renderer->page_header('assign');
     ?>
@@ -42,7 +66,7 @@ if (empty($groupid)) {
                         <p>
                             <label for="removeselect">Membros do grupo de tutoria</label>
                         </p>
-                        <?php $admisselector->display(); ?>
+                        <?php $membersselector->display(); ?>
                     </td>
 
                     <td id="buttonscell">
@@ -63,7 +87,7 @@ if (empty($groupid)) {
                         <p>
                             <label for="addselect">Possíveis usuários</label>
                         </p>
-                        <?php $potentialadmisselector->display(); ?>
+                        <?php $potentialmembersselector->display(); ?>
                     </td>
                 </tr>
             </table>

@@ -4,6 +4,15 @@ require_once($CFG->libdir . '/moodlelib.php');
 require_once('middlewarelib.php');
 require_once($CFG->dirroot . '/' . $CFG->admin . '/roles/lib.php');
 
+function add_member_grupo_tutoria($grupo, $matricula) {
+    $middleware = Academico::singleton();
+    $sql = "INSERT INTO {$middleware->table_pessoas_funcoes_grupos_tutoria}
+                        (grupo, matricula)
+                 VALUES (:grupo, :matricula)";
+    $params = array('grupo' => $grupo, 'matricula' => $matricula);
+    return $middleware->db->execute($sql, $params);
+}
+
 function create_grupo_tutoria($curso_ufsc, $nome) {
     $middleware = Academico::singleton();
     $sql = "INSERT INTO {$middleware->table_grupos_tutoria} (nome, curso) VALUES(?,?)";
@@ -69,9 +78,17 @@ function redirect_to_gerenciar_tutores() {
 
 abstract class tutor_selector_base extends user_selector_base {
 
+    protected $grupo;
+
+    public function __construct($name, $options) {
+        $this->grupo = $options['grupo'];
+        parent::__construct($name, $options);
+    }
+
     protected function get_options() {
         global $CFG;
         $options = parent::get_options();
+        $options['grupo'] = $this->grupo;
         $options['file'] = $CFG->admin . '/tool/tutores/locallib.php';
         return $options;
     }
@@ -110,8 +127,9 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
      * @param string $name control name
      * @param array $options should have two elements with keys groupid and courseid.
      */
-    public function __construct($tutores_ids = null) {
-        parent::__construct('addselect', array('multiselect' => false, 'exclude' => $tutores_ids));
+    public function __construct($name, $options) {
+        $options['multiselect'] = false;
+        parent::__construct($name, $options);
     }
 
     public function find_users($search) {
@@ -173,16 +191,15 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
      * @param string $name control name
      * @param array $options should have two elements with keys groupid and courseid.
      */
-    public function __construct() {
-        global $CFG, $USER;
-        parent::__construct('removeselect', array('multiselect' => false));
+    public function __construct($name, $options) {
+        $options['multiselect'] = false;
+        parent::__construct($name, $options);
     }
 
     public function find_users($search) {
         global $CFG, $DB;
 
         $middleware = Academico::singleton();
-        $curso_ufsc_id = get_curso_ufsc_id();
 
         list($wherecondition, $params) = $this->search_sql($search, 'u');
 
@@ -194,13 +211,13 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
                    ON (u.username=pg.matricula)
                 WHERE $wherecondition
                   AND mnethostid = :localmnet
-                  AND pg.curso=:curso
+                  AND pg.grupo=:grupo
                  ";
 
         $order = ' ORDER BY lastname ASC, firstname ASC';
 
         $params['localmnet'] = $CFG->mnet_localhost_id; // it could be dangerous to make remote users admins and also this could lead to other problems
-        $params['curso'] = $curso_ufsc_id;
+        $params['grupo'] = $this->grupo;
 
 
         // Check to see if there are too many to show sensibly.
@@ -217,13 +234,16 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
             $sql = " FROM {user} u
                      JOIN {$middleware->table_pessoas_funcoes_grupos_tutoria} pg
                        ON (u.username=pg.matricula)
+                     JOIN {$middleware->view_usuarios} mid_u
+                    USING (username)
                     WHERE $wherecondition
                       AND mnethostid = :localmnet
-                      AND pg.curso=:curso
-                      AND pg.papel=:papel";
+                      AND pg.grupo=:grupo
+                      AND mid_u.papel_principal=:papel";
 
             $params['papel'] = $role_key;
             $found_users[$role_name] = $DB->get_records_sql($fields . $sql . $order, $params);
+
             if (empty($found_users)) {
                 $found_users[$role_name] = array();
             }
