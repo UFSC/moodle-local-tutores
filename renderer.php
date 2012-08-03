@@ -15,7 +15,7 @@ class tool_tutores_renderer extends plugin_renderer_base {
     }
 
     public function assign_page() {
-        $grupos = get_grupos_tutoria($this->curso_ativo);
+        $grupos = get_grupos_tutoria_with_members_count($this->curso_ativo);
 
         // Tabela
         $table = new html_table();
@@ -25,7 +25,7 @@ class tool_tutores_renderer extends plugin_renderer_base {
 
         foreach ($grupos as $grupo) {
             $url = new moodle_url('/admin/tool/tutores/assign.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->id));
-            $table->data[] = array(html_writer::link($url, $grupo->nome), rand(40, 50), rand(1, 3));
+            $table->data[] = array(html_writer::link($url, $grupo->nome), $grupo->estudantes, $grupo->tutores);
         }
 
         // Output

@@ -50,6 +50,38 @@ function get_grupos_tutoria($curso_ufsc) {
     return $middleware->db->get_records_sql($sql, array('curso' => $curso_ufsc));
 }
 
+function get_grupos_tutoria_with_members_count($curso_ufsc) {
+    $middleware = Academico::singleton();
+    $sql = "SELECT gt.id as grupo, gt.nome, IFNULL(estudante.quantidade, 0) as estudantes, IFNULL(tutor.quantidade, 0) as tutores
+              FROM {$middleware->table_grupos_tutoria} gt
+         LEFT JOIN (
+                  SELECT gt.id as grupo, COUNT(*) as quantidade
+                    FROM {$middleware->table_grupos_tutoria} gt
+                    JOIN {$middleware->table_pessoas_funcoes_grupos_tutoria} pg
+                      ON (gt.id=pg.grupo)
+                    JOIN {$middleware->view_usuarios} u
+                      ON (u.username=pg.matricula)
+                   WHERE papel_principal='AR'
+                GROUP BY pg.grupo
+                   ) as estudante
+                ON (estudante.grupo=gt.id)
+         LEFT JOIN (
+                  SELECT gt.id as grupo, COUNT(*) as quantidade
+                    FROM {$middleware->table_grupos_tutoria} gt
+                    JOIN {$middleware->table_pessoas_funcoes_grupos_tutoria} pg
+                      ON (gt.id=pg.grupo)
+                    JOIN {$middleware->view_usuarios} u
+                      ON (u.username=pg.matricula)
+                   WHERE papel_principal='46'
+                GROUP BY pg.grupo
+                  ) as tutor
+               ON (tutor.grupo=gt.id)
+            WHERE gt.curso=:curso
+         ORDER BY gt.nome";
+    //$sql = "SELECT * FROM {$middleware->table_grupos_tutoria} WHERE curso=:curso ORDER BY nome";
+    return $middleware->db->get_records_sql($sql, array('curso' => $curso_ufsc));
+}
+
 function get_cursos_ativos_list() {
     $middleware = Academico::singleton();
     $sql = "SELECT curso, nome_sintetico FROM {$middleware->view_cursos_ativos}";
