@@ -23,19 +23,17 @@ class grupos_tutoria {
     static function get_papeis_estudantes() {
         global $CFG;
 
-        return self::escape_papeis_sql(explode(',', $CFG->estudantes_allowed_roles));
+        return explode(',', $CFG->estudantes_allowed_roles);
     }
 
     static function get_papeis_tutores() {
         global $CFG;
 
-        return self::escape_papeis_sql(explode(',', $CFG->tutores_allowed_roles));
+        return explode(',', $CFG->tutores_allowed_roles);
     }
 
     static function get_papeis_participantes_possiveis() {
-        global $CFG;
-
-        $papeis = array_merge(explode(',', $CFG->tutores_allowed_roles), explode(',', $CFG->estudantes_allowed_roles));
+        $papeis = array_merge(self::get_papeis_tutores(), self::get_papeis_estudantes());
         return $papeis;
     }
 
@@ -122,7 +120,8 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
                 USING (username)
                 WHERE $wherecondition
                   AND mnethostid = :localmnet
-                  AND mid_u.papel_principal IN ({$allowed_roles_sql})";
+                  AND mid_u.papel_principal IN ({$allowed_roles_sql})
+                  AND u.username NOT IN (SELECT matricula FROM {$middleware->table_pessoas_funcoes_grupos_tutoria})";
 
         $order = ' ORDER BY lastname ASC, firstname ASC';
 

@@ -1,7 +1,8 @@
 <?php
 
 require_once($CFG->libdir . '/moodlelib.php');
-require_once('middlewarelib.php');
+require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/middlewarelib.php");
+require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/lib.php");
 
 /**
  * Adiciona uma pessoa a um grupo de tutoria
@@ -53,6 +54,9 @@ function get_grupos_tutoria_with_members_count($curso_ufsc) {
     global $CFG;
 
     $middleware = Academico::singleton();
+    $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
+    $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
+
     $sql = "SELECT gt.id as grupo, gt.nome, IFNULL(estudante.quantidade, 0) as estudantes, IFNULL(tutor.quantidade, 0) as tutores
               FROM {$middleware->table_grupos_tutoria} gt
          LEFT JOIN (
@@ -62,7 +66,7 @@ function get_grupos_tutoria_with_members_count($curso_ufsc) {
                       ON (gt.id=pg.grupo)
                     JOIN {$middleware->view_usuarios} u
                       ON (u.username=pg.matricula)
-                   WHERE papel_principal='AR'
+                   WHERE papel_principal IN ({$papeis_estudantes})
                 GROUP BY pg.grupo
                    ) as estudante
                 ON (estudante.grupo=gt.id)
@@ -73,13 +77,13 @@ function get_grupos_tutoria_with_members_count($curso_ufsc) {
                       ON (gt.id=pg.grupo)
                     JOIN {$middleware->view_usuarios} u
                       ON (u.username=pg.matricula)
-                   WHERE papel_principal='46'
+                   WHERE papel_principal IN ({$papeis_tutores})
                 GROUP BY pg.grupo
                   ) as tutor
                ON (tutor.grupo=gt.id)
             WHERE gt.curso=:curso
          ORDER BY gt.nome";
-    //$sql = "SELECT * FROM {$middleware->table_grupos_tutoria} WHERE curso=:curso ORDER BY nome";
+
     return $middleware->db->get_records_sql($sql, array('curso' => $curso_ufsc));
 }
 
