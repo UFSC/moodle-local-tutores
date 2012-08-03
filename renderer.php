@@ -24,7 +24,7 @@ class tool_tutores_renderer extends plugin_renderer_base {
         $table->data = array();
 
         foreach ($grupos as $grupo) {
-            $url = new moodle_url('/admin/tool/tutores/assign.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->id));
+            $url = new moodle_url('/admin/tool/tutores/assign.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->grupo));
             $table->data[] = array(html_writer::link($url, $grupo->nome), $grupo->estudantes, $grupo->tutores);
         }
 

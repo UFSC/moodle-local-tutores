@@ -13,5 +13,6 @@ $string['member_count'] = 'Estudantes';
 $string['nome_grupo'] = 'Nome do Grupo';
 $string['pluginname'] = 'Grupos de Tutoria';
 $string['plugindescription'] = 'Gerencia relação de tutores em um curso';
-$string['settings_allowed_roles'] = 'Papéis permitidos';
+$string['settings_estudantes_allowed_roles'] = 'Papéis que reprensetam estudantes';
+$string['settings_tutores_allowed_roles'] = 'Papéis que representam tutores';
 $string['tutores'] = 'Tutores';
