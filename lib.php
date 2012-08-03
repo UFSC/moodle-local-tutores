@@ -20,18 +20,36 @@ class grupos_tutoria {
         return $middleware->db->get_records_sql_menu($sql);
     }
 
+    /**
+     * Retorna os papéis que estão sendo considerados como estudantes
+     *
+     * @static
+     * @return array
+     */
     static function get_papeis_estudantes() {
         global $CFG;
 
         return explode(',', $CFG->estudantes_allowed_roles);
     }
 
+    /**
+     * Retorna os papéis que estão sendo considerados como tutores
+     *
+     * @static
+     * @return array
+     */
     static function get_papeis_tutores() {
         global $CFG;
 
         return explode(',', $CFG->tutores_allowed_roles);
     }
 
+    /**
+     * Retorna lista de todos os papéis que são considerados ou tutor ou estudante
+     *
+     * @static
+     * @return array
+     */
     static function get_papeis_participantes_possiveis() {
         $papeis = array_merge(self::get_papeis_tutores(), self::get_papeis_estudantes());
         return $papeis;
@@ -45,7 +63,7 @@ class grupos_tutoria {
      * para clausula IN
      *
      * @static
-     * @param $papeis Listagem de papéis separados por vírgula
+     * @param $papeis Listagem de papéis em um array simples ([$i => $codigo_papel])
      * @return string Listagem de papéis, separados por vírgula e com aspas entre eles.
      */
      static function escape_papeis_sql($papeis) {
