@@ -14,28 +14,6 @@ class tool_tutores_renderer extends plugin_renderer_base {
         $this->curso_ativo = get_curso_ufsc_id();
     }
 
-    public function assign_page() {
-        $grupos = get_grupos_tutoria_with_members_count($this->curso_ativo);
-
-        // Tabela
-        $table = new html_table();
-        $table->head = array(get_string('grupos_tutoria', 'tool_tutores'), get_string('member_count', 'tool_tutores'), get_string('tutores', 'tool_tutores'));
-        $table->tablealign = 'center';
-        $table->data = array();
-
-        foreach ($grupos as $grupo) {
-            $url = new moodle_url('/admin/tool/tutores/assign.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->grupo));
-            $table->data[] = array(html_writer::link($url, $grupo->nome), $grupo->estudantes, $grupo->tutores);
-        }
-
-        // Output
-        $output = $this->page_header('assign');
-        $output .= $this->heading('Por favor, escolha um grupo para atribuir participantes', 3);
-        $output .= html_writer::table($table);
-        $output .= $this->page_footer();
-        return $output;
-    }
-
     public function choose_curso_ufsc_page() {
 
         // Imprime cabeçalho da página
@@ -68,25 +46,30 @@ class tool_tutores_renderer extends plugin_renderer_base {
 
         // Tabela
         $table = new html_table();
-        $table->head = array(get_string('grupos_tutoria', 'tool_tutores'), get_string('edit'));
+        $table->head = array(
+            get_string('grupos_tutoria', 'tool_tutores'),
+            get_string('member_count', 'tool_tutores'),
+            get_string('tutores', 'tool_tutores'),
+            get_string('edit'));
         $table->tablealign = 'center';
         $table->data = array();
 
         $add_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'action' => 'add'));
-        $add_controls = $this->heading('<a href="' . $add_url . '">' . get_string('addnewgroup', 'tool_tutores') . '</a>');
+        $add_controls = $this->heading(html_writer::link($add_url, get_string('addnewgroup', 'tool_tutores')));
 
         foreach ($grupos as $grupo) {
-            $edit_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->id, 'action' => 'edit'));
-            $delete_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->id, 'action' => 'delete'));
+            $url = new moodle_url('/admin/tool/tutores/assign.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->grupo));
+            $edit_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->grupo, 'action' => 'edit'));
+            $delete_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->grupo, 'action' => 'delete'));
             $controls = get_action_icon($edit_url, 'edit', get_string('edit'), get_string('edit')) .
-                    get_action_icon($delete_url, 'delete', get_string('delete'), get_string('delete'));
+                        get_action_icon($delete_url, 'delete', get_string('delete'), get_string('delete'));
 
-            $table->data[] = array($grupo->nome, $controls);
+            $table->data[] = array(html_writer::link($url, $grupo->nome), $grupo->estudantes, $grupo->tutores, $controls);
         }
 
         // Output
         $output = $this->page_header('index');
-        $output .= $add_controls;
+        $output .= $this->heading('Clique em um grupo para atribuir participantes', 3);
         $output .= html_writer::table($table);
         $output .= $add_controls;
         $output .= $this->page_footer();
@@ -107,14 +90,6 @@ class tool_tutores_renderer extends plugin_renderer_base {
 
         // Imprime seletor de curso UFSC ativo
         $output .= $this->render($select);
-
-        $toprow = array();
-        $toprow[] = new tabobject('index', new moodle_url('/admin/tool/tutores/index.php', array('curso_ufsc' => $this->curso_ativo)), get_string('gerenciar_tutores', 'tool_tutores'));
-        $toprow[] = new tabobject('assign', new moodle_url('/admin/tool/tutores/assign.php', array('curso_ufsc' => $this->curso_ativo)), get_string('designar_participantes', 'tool_tutores'));
-        $toprow[] = new tabobject('permission', new moodle_url('/admin/tool/tutores/permissions.php', array('curso_ufsc' => $this->curso_ativo)), get_string('definir_permissoes', 'tool_tutores'));
-        $tabs = array($toprow);
-
-        $output .= print_tabs($tabs, $current_tab, null, null, true);
 
         return $output;
     }

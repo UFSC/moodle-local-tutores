@@ -14,6 +14,6 @@ $curso_ufsc = get_curso_ufsc_id();
 if (empty($curso_ufsc)) {
     echo $renderer->choose_curso_ufsc_page();
 } else {
-    $grupos = get_grupos_tutoria($curso_ufsc);
+    $grupos = get_grupos_tutoria_with_members_count($curso_ufsc);
     echo $renderer->list_groups_page($grupos);
 }

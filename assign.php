@@ -5,66 +5,69 @@ require_once($CFG->libdir . '/adminlib.php');
 require_once('locallib.php');
 
 $page_url = '/admin/tool/tutores/assign.php';
-$groupid = optional_param('id', null, PARAM_INT);
+$groupid = required_param('id', PARAM_INT);
+$curso_ufsc = required_param('curso_ufsc', PARAM_INT);
+$backto_url = new moodle_url('/admin/tool/tutores/index.php', array('curso_ufsc' => $curso_ufsc));
 
 require_login();
 require_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM));
-admin_externalpage_setup('tooltutores', '', array('curso_ufsc' => get_curso_ufsc_id(), 'id' => $groupid), $page_url);
+admin_externalpage_setup('tooltutores', '', array('curso_ufsc' => $curso_ufsc, 'id' => $groupid), $page_url);
 
 $renderer = $PAGE->get_renderer('tool_tutores');
 
 
-if (empty($groupid)) {
-    echo $renderer->assign_page();
-} else {
+// Opções passadas ao seletor de usuários
+$options = array('grupo' => $groupid);
 
-    $options = array('grupo' => $groupid);
+// Select de usuários
+$membersselector = new usuarios_tutoria_existing_selector('existingmembersgrupotutoria', $options);
+$membersselector->set_extra_fields(array('username', 'email'));
 
-    // Select de usuários
-    $membersselector = new usuarios_tutoria_existing_selector('existingmembersgrupotutoria', $options);
-    $membersselector->set_extra_fields(array('username', 'email'));
+// Select de possíveis usuários
+$potentialmembersselector = new usuarios_tutoria_potential_selector('addmembergrupotutoria', $options);
+$potentialmembersselector->set_extra_fields(array('username', 'email'));
 
-    // Select de possíveis usuários
-    $potentialmembersselector = new usuarios_tutoria_potential_selector('addmembergrupotutoria', $options);
-    $potentialmembersselector->set_extra_fields(array('username', 'email'));
+//
+// Processa requisições de inclusão de membros em grupos
+//
+if (optional_param('add', false, PARAM_BOOL) && confirm_sesskey()) {
+    $userstoassign = $potentialmembersselector->get_selected_users();
+    if (!empty($userstoassign)) {
 
-    // Processa requisições de inclusão de membros em grupos
-    if (optional_param('add', false, PARAM_BOOL) && confirm_sesskey()) {
-        $userstoassign = $potentialmembersselector->get_selected_users();
-        if (!empty($userstoassign)) {
-
-            // TODO: verificar permissões
-            foreach ($userstoassign as $adduser) {
-                add_member_grupo_tutoria($groupid, $adduser->username);
-            }
-
-            $potentialmembersselector->invalidate_selected_users();
-            $membersselector->invalidate_selected_users();
-
-            // TODO: logar inscrições
-            //add_to_log($course->id, 'role', 'assign', 'admin/roles/assign.php?contextid='.$context->id.'&roleid='.$roleid, $rolename, '', $USER->id);
+        // TODO: verificar permissões
+        foreach ($userstoassign as $adduser) {
+            add_member_grupo_tutoria($groupid, $adduser->username);
         }
+
+        $potentialmembersselector->invalidate_selected_users();
+        $membersselector->invalidate_selected_users();
+
+        // TODO: logar inscrições
+        //add_to_log($course->id, 'role', 'assign', 'admin/roles/assign.php?contextid='.$context->id.'&roleid='.$roleid, $rolename, '', $USER->id);
     }
+}
 
-    // Processa requisições de exclusão de membros em grupos
-    if (optional_param('remove', false, PARAM_BOOL) && confirm_sesskey()) {
-        $userstounassign = $membersselector->get_selected_users();
-        if (!empty($userstounassign)) {
+//
+// Processa requisições de exclusão de membros em grupos
+//
+if (optional_param('remove', false, PARAM_BOOL) && confirm_sesskey()) {
+    $userstounassign = $membersselector->get_selected_users();
+    if (!empty($userstounassign)) {
 
-            foreach ($userstounassign as $removeuser) {
-                remove_member_grupo_tutoria($groupid, $removeuser->username);
-            }
-
-            $potentialmembersselector->invalidate_selected_users();
-            $membersselector->invalidate_selected_users();
-
-            // TODO: logar desinscrições
-            //add_to_log($course->id, 'role', 'unassign', 'admin/roles/assign.php?contextid='.$context->id.'&roleid='.$roleid, $rolename, '', $USER->id);
+        foreach ($userstounassign as $removeuser) {
+            remove_member_grupo_tutoria($groupid, $removeuser->username);
         }
-    }
 
-    echo $renderer->page_header('assign');
-    ?>
+        $potentialmembersselector->invalidate_selected_users();
+        $membersselector->invalidate_selected_users();
+
+        // TODO: logar desinscrições
+        //add_to_log($course->id, 'role', 'unassign', 'admin/roles/assign.php?contextid='.$context->id.'&roleid='.$roleid, $rolename, '', $USER->id);
+    }
+}
+
+echo $renderer->page_header('assign');
+?>
 
 
 <div id="addadmisform">
@@ -109,6 +112,10 @@ if (empty($groupid)) {
     </form>
 </div>
 
+
 <?php
-    echo $renderer->page_footer();
-}
+echo html_writer::start_tag('div', array('class'=>'backlink'));
+echo html_writer::link($backto_url, get_string('backto_grupos_tutoria', 'tool_tutores'));
+echo html_writer::end_tag('div');
+
+echo $renderer->page_footer();

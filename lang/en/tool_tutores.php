@@ -1,14 +1,15 @@
 <?php
 
 $string['addnewgroup'] = 'Criar novo grupo';
+$string['backto_grupos_tutoria'] = 'Voltar a lista de grupos de tutoria';
 $string['curso'] = 'Curso';
 $string['cursos_ufsc'] = 'Cursos UFSC';
 $string['definir_permissoes'] = 'Definir permissões';
 $string['definir_permissoes_curso'] = 'Grupos de Tutoria do curso "{$a}"';
 $string['designar_participantes'] = 'Designar participantes';
-$string['gerenciar_tutores'] = 'Gerenciar Tutores';
 $string['grupos_tutoria'] = 'Grupos de tutoria';
 $string['grupos_tutoria_settings'] = 'Configurar grupos de tutoria';
+$string['manage_groups'] = 'Gerenciar grupos de tutoria';
 $string['member_count'] = 'Estudantes';
 $string['nome_grupo'] = 'Nome do Grupo';
 $string['pluginname'] = 'Grupos de Tutoria';
