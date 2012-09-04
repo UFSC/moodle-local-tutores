@@ -4,6 +4,7 @@ defined('MOODLE_INTERNAL') || die;
 
 $ADMIN->add('users', new admin_category('grupostutoria', get_string('grupos_tutoria', 'tool_tutores')));
 $ADMIN->add('grupostutoria', new admin_externalpage('tooltutores', get_string('manage_groups', 'tool_tutores'), "$CFG->wwwroot/$CFG->admin/tool/tutores/index.php"));
+$ADMIN->add('grupostutoria', new admin_externalpage('tooltutoresbulk', get_string('bulk_upload_groups', 'tool_tutores'), "$CFG->wwwroot/$CFG->admin/tool/tutores/bulk.php"));
 
 if ($hassiteconfig) {
     require_once("{$CFG->dirroot}/admin/tool/tutores/lib.php");

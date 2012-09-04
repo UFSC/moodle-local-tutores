@@ -116,6 +116,10 @@ function get_members_grupo_tutoria($grupo) {
     return $middleware->db->get_records_sql($sql, $params);
 }
 
+function redirect_to_gerenciar_tutores() {
+    redirect(new moodle_url('/admin/tool/tutores/index.php', array('curso_ufsc' => get_curso_ufsc_id())));
+}
+
 /**
  * Remove um participante de um grupo de tutoria
  *
@@ -137,6 +141,29 @@ function update_grupo_tutoria($curso_ufsc, $grupo, $nome) {
     return $middleware->db->execute($sql, array($nome, $curso_ufsc, $grupo));
 }
 
-function redirect_to_gerenciar_tutores() {
-    redirect(new moodle_url('/admin/tool/tutores/index.php', array('curso_ufsc' => get_curso_ufsc_id())));
+/**
+ * Realiza a validação das colunas informadas no CSV de importação em lote de participantes
+ * @param $cir
+ * @param $STD_FIELDS
+ * @param $base_url
+ * @return array
+ */
+function validate_upload_grupos_tutoria($cir, $returnurl) {
+    $columns = $cir->get_columns();
+
+    if (empty($columns)) {
+        $cir->close();
+        $cir->cleanup();
+        print_error('cannotreadtmpfile', 'error', $returnurl);
+    }
+
+    foreach ($columns as $key=>$field) {
+        if ($key != 'username') {
+            $cir->close();
+            $cir->cleanup();
+            print_error('invalidfieldname', 'error', $returnurl, $field);
+        }
+    }
+
+    return $columns;
 }

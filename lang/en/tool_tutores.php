@@ -2,6 +2,7 @@
 
 $string['addnewgroup'] = 'Criar novo grupo';
 $string['backto_grupos_tutoria'] = 'Voltar a lista de grupos de tutoria';
+$string['bulk_upload_groups'] = 'Carregar lista de participantes';
 $string['curso'] = 'Curso';
 $string['cursos_ufsc'] = 'Cursos UFSC';
 $string['definir_permissoes'] = 'Definir permissões';
