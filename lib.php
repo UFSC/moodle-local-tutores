@@ -117,7 +117,6 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
      * @param array $options should have two elements with keys groupid and courseid.
      */
     public function __construct($name, $options) {
-        $options['multiselect'] = false;
         parent::__construct($name, $options);
     }
 
@@ -185,7 +184,6 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
      * @param array $options should have two elements with keys groupid and courseid.
      */
     public function __construct($name, $options) {
-        $options['multiselect'] = false;
         parent::__construct($name, $options);
     }
 
