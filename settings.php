@@ -8,13 +8,17 @@ $ADMIN->add('grupostutoria', new admin_externalpage('tooltutoresbulk', get_strin
 
 if ($hassiteconfig) {
     require_once("{$CFG->dirroot}/admin/tool/tutores/lib.php");
+
     $papeis = grupos_tutoria::get_papeis_ufsc();
 
-    $settings = new admin_settingpage('grupos_tutoria_settings', get_string('grupos_tutoria_settings', 'tool_tutores'));
-    $settings->add(new admin_setting_configmultiselect('estudantes_allowed_roles', get_string('settings_estudantes_allowed_roles',
-        'tool_tutores'), '', null, $papeis));
-    $settings->add(new admin_setting_configmultiselect('tutores_allowed_roles', get_string('settings_tutores_allowed_roles',
-        'tool_tutores'), '', null, $papeis));
+    if (!empty($papeis)) {
 
-    $ADMIN->add('grupostutoria', $settings);
+        $settings = new admin_settingpage('grupos_tutoria_settings', get_string('grupos_tutoria_settings', 'tool_tutores'));
+        $settings->add(new admin_setting_configmultiselect('estudantes_allowed_roles', get_string('settings_estudantes_allowed_roles',
+            'tool_tutores'), '', null, $papeis));
+        $settings->add(new admin_setting_configmultiselect('tutores_allowed_roles', get_string('settings_tutores_allowed_roles',
+            'tool_tutores'), '', null, $papeis));
+
+        $ADMIN->add('grupostutoria', $settings);
+    }
 }

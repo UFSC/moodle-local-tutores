@@ -13,7 +13,7 @@ require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/lib.php");
  */
 function add_member_grupo_tutoria($grupo, $matricula) {
     $middleware = Academico::singleton();
-    $sql = "INSERT INTO {$middleware->table_pessoas_funcoes_grupos_tutoria}
+    $sql = "INSERT INTO {$middleware->table_pessoas_grupos_tutoria}
                         (grupo, matricula)
                  VALUES (:grupo, :matricula)";
     $params = array('grupo' => $grupo, 'matricula' => $matricula);
@@ -62,7 +62,7 @@ function get_grupos_tutoria_with_members_count($curso_ufsc) {
          LEFT JOIN (
                   SELECT gt.id as grupo, COUNT(*) as quantidade
                     FROM {$middleware->table_grupos_tutoria} gt
-                    JOIN {$middleware->table_pessoas_funcoes_grupos_tutoria} pg
+                    JOIN {$middleware->table_pessoas_grupos_tutoria} pg
                       ON (gt.id=pg.grupo)
                     JOIN {$middleware->view_usuarios} u
                       ON (u.username=pg.matricula)
@@ -73,7 +73,7 @@ function get_grupos_tutoria_with_members_count($curso_ufsc) {
          LEFT JOIN (
                   SELECT gt.id as grupo, COUNT(*) as quantidade
                     FROM {$middleware->table_grupos_tutoria} gt
-                    JOIN {$middleware->table_pessoas_funcoes_grupos_tutoria} pg
+                    JOIN {$middleware->table_pessoas_grupos_tutoria} pg
                       ON (gt.id=pg.grupo)
                     JOIN {$middleware->view_usuarios} u
                       ON (u.username=pg.matricula)
@@ -108,7 +108,7 @@ function get_members_grupo_tutoria($grupo) {
 
     $sql = "SELECT u.*
               FROM {user} u
-              JOIN {$middleware->table_pessoas_funcoes_grupos_tutoria} pg
+              JOIN {$middleware->table_pessoas_grupos_tutoria} pg
                 ON (u.username=pg.matricula)
              WHERE pg.grupo=:grupo";
 
@@ -129,7 +129,7 @@ function redirect_to_gerenciar_tutores() {
  */
 function remove_member_grupo_tutoria($grupo, $matricula) {
     $middleware = Academico::singleton();
-    $sql = "DELETE FROM {$middleware->table_pessoas_funcoes_grupos_tutoria}
+    $sql = "DELETE FROM {$middleware->table_pessoas_grupos_tutoria}
                   WHERE grupo=:grupo AND matricula=:matricula";
     $params = array('grupo' => $grupo, 'matricula' => $matricula);
     return $middleware->db->execute($sql, $params);

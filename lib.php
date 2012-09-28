@@ -13,6 +13,9 @@ class grupos_tutoria {
     static function get_papeis_ufsc() {
         $middleware = Academico::singleton();
 
+        if (!$middleware->configured())
+            return false;
+
         $sql = "SELECT p.* FROM {$middleware->view_usuarios} u
                   JOIN {$middleware->table_papeis} p ON(u.papel_principal = p.papel)
               GROUP BY papel_principal";
@@ -138,7 +141,7 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
                 WHERE $wherecondition
                   AND mnethostid = :localmnet
                   AND mid_u.papel_principal IN ({$allowed_roles_sql})
-                  AND u.username NOT IN (SELECT matricula FROM {$middleware->table_pessoas_funcoes_grupos_tutoria})";
+                  AND u.username NOT IN (SELECT matricula FROM {$middleware->table_pessoas_grupos_tutoria})";
 
         $order = ' ORDER BY lastname ASC, firstname ASC';
 
@@ -162,7 +165,7 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
                     WHERE $wherecondition
                       AND mnethostid = :localmnet
                       AND mid_u.papel_principal=:papel
-                      AND u.username NOT IN (SELECT matricula FROM {$middleware->table_pessoas_funcoes_grupos_tutoria})";
+                      AND u.username NOT IN (SELECT matricula FROM {$middleware->table_pessoas_grupos_tutoria})";
 
             $params['papel'] = $role_key;
             $users = $DB->get_records_sql($fields . $sql . $order, $params);
@@ -198,7 +201,7 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
         $countfields = 'SELECT COUNT(1)';
 
         $sql = " FROM {user} u
-                 JOIN {$middleware->table_pessoas_funcoes_grupos_tutoria} pg
+                 JOIN {$middleware->table_pessoas_grupos_tutoria} pg
                    ON (u.username=pg.matricula)
                 WHERE $wherecondition
                   AND mnethostid = :localmnet
@@ -223,7 +226,7 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
         $found_users = array();
         foreach ($allowed_roles as $role_key => $role_name) {
             $sql = " FROM {user} u
-                     JOIN {$middleware->table_pessoas_funcoes_grupos_tutoria} pg
+                     JOIN {$middleware->table_pessoas_grupos_tutoria} pg
                        ON (u.username=pg.matricula)
                      JOIN {$middleware->view_usuarios} mid_u
                     USING (username)

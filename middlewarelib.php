@@ -32,12 +32,19 @@ class Academico {
         return self::$instance;
     }
 
+    public function configured() {
+        return (isset($this->dbname) && isset($this->contexto));
+    }
+
 
     private function __construct() {
         global $DB;
 
         // Carrega configurações do enrol_ufsc
         $config = get_config("enrol_ufsc");
+
+        if (!isset($config->dbname) && !isset($config->contexto))
+            return false;
 
         // Define atributos
         $this->db =& $DB;
