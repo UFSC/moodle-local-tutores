@@ -11,7 +11,7 @@ class admin_bulk_tutores extends moodleform {
     function definition () {
         $mform = $this->_form;
 
-        $mform->addElement('header', 'settingsheader', get_string('upload'));
+        $mform->addElement('header', 'bulktutoresheader', get_string('upload'));
 
         $mform->addElement('filepicker', 'userfile', get_string('file'));
         $mform->addRule('userfile', null, 'required');
@@ -35,5 +35,23 @@ class admin_bulk_tutores extends moodleform {
         $mform->setType('previewrows', PARAM_INT);
 
         $this->add_action_buttons(false, get_string('uploadusers', 'tool_uploaduser'));
+    }
+}
+
+class admin_bulk_tutores_confirmation extends moodleform {
+    function definition() {
+        $mform = $this->_form;
+        $data  = $this->_customdata['data'];
+
+        $mform->addElement('header', 'bulktutoresheader', get_string('upload'));
+        $mform->addElement('static', 'bulktutoreswarning', get_string('confirm_bulk_operation', 'tool_tutores'));
+
+        // hidden fields
+        $mform->addElement('hidden', 'iid');
+        $mform->setType('iid', PARAM_INT);
+
+        $this->set_data($data);
+
+        $this->add_action_buttons(true, get_string('uploadusers', 'tool_uploaduser'))  ;
     }
 }

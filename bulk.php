@@ -29,33 +29,74 @@ if (empty($curso_ufsc)) {
     die();
 }
 
-// processa formulário inicial
-$mform = new admin_bulk_tutores($base_url);
-if ($formdata = $mform->get_data()) {
-    $iid = csv_import_reader::get_new_iid('uploaduser');
+if (empty($iid)) {
+
+    // processa formulário inicial
+    $mform = new admin_bulk_tutores($base_url);
+    if ($formdata = $mform->get_data()) {
+        $iid = csv_import_reader::get_new_iid('uploaduser');
+        $cir = new csv_import_reader($iid, 'uploaduser');
+
+        $content = $mform->get_file_content('userfile');
+
+        $readcount = $cir->load_csv_content($content, $formdata->encoding, $formdata->delimiter_name);
+        unset($content);
+
+        if ($readcount === false) {
+            print_error('csvloaderror', '', $base_url);
+        } else if ($readcount == 0) {
+            print_error('csvemptyfile', 'error', $base_url);
+        }
+
+        $filecolumns = validate_upload_grupos_tutoria($cir, $base_url);
+        // Vai continuar no form2
+
+    } else {
+        // exibe formulário inicial
+        echo $renderer->page_header();
+
+        $mform->display();
+
+        echo $renderer->page_footer();
+        die();
+    }
+} else {
+
     $cir = new csv_import_reader($iid, 'uploaduser');
+    $filecolumns = validate_upload_grupos_tutoria($cir, $base_url);
+}
 
-    $content = $mform->get_file_content('userfile');
+$mform2 = new admin_bulk_tutores_confirmation($base_url, array('columns'=>$filecolumns, 'data'=>array('iid'=>$iid)));
 
-    $readcount = $cir->load_csv_content($content, $formdata->encoding, $formdata->delimiter_name);
-    unset($content);
+// If a file has been uploaded, then process it
+if ($formdata = $mform2->is_cancelled()) {
+    $cir->cleanup(true);
+    redirect($base_url);
 
-    if ($readcount === false) {
-        print_error('csvloaderror', '', $base_url);
-    } else if ($readcount == 0) {
-        print_error('csvemptyfile', 'error', $base_url);
+} else if ($formdata = $mform2->get_data()) {
+    // realiza a inscrição em lote
+
+    // init csv import helper
+    $cir->init();
+    $linenum = 1; //column header is first line
+
+    while ($line = $cir->next()) {
+        $linenum++;
+        var_dump($line[0]);
     }
 
-    $columns = validate_upload_grupos_tutoria($cir, $base_url);
+    // Limpa os arquivos temporários utilizados neste envio
+    $cir->close();
+    $cir->cleanup(true);
 
-    echo $renderer->preview_bulk_upload($cir, $previewrows, $columns);
-
-} else {
-    // exibe formulário inicial
-    echo $renderer->page_header();
-
-    $mform->display();
-
-    echo $renderer->page_footer();
+    $numpeople = $linenum-1;
+    echo $renderer->display_bulk_results($base_url, $numpeople);
     die();
 }
+
+echo $renderer->page_header();
+
+echo $renderer->preview_bulk_upload($cir, $previewrows, $filecolumns);
+$mform2->display();
+
+echo $renderer->page_footer();

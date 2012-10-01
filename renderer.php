@@ -151,9 +151,17 @@ class tool_tutores_renderer extends plugin_renderer_base {
         }
         $table->head[] = get_string('status');
 
-        $output = $this->page_header();
-        $output .= html_writer::tag('div', html_writer::table($table), array('class'=>'flexible-wrap'));
+        $output = html_writer::tag('div', html_writer::table($table), array('class'=>'flexible-wrap'));
+
+        return $output;
+    }
+
+    public function display_bulk_results($base_url, $numpeople) {
+        $output =  $this->page_header();
+        $output .= $this->box("Foram inscritas {$numpeople} pessoas");
+        $output .= $this->continue_button($base_url);
         $output .= $this->page_footer();
+
         return $output;
     }
 
