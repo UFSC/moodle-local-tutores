@@ -156,10 +156,27 @@ class tool_tutores_renderer extends plugin_renderer_base {
         return $output;
     }
 
-    public function display_bulk_results($base_url, $numpeople) {
+    public function display_bulk_results($base_url, $numpeople, $failed) {
         $output =  $this->page_header();
-        $output .= $this->box("Foram inscritas {$numpeople} pessoas");
-        $output .= $this->continue_button($base_url);
+
+        if (empty($failed)) {
+            $output .= $this->box("Foram inscritas {$numpeople} pessoas");
+            $output .= $this->continue_button($base_url);
+        } else {
+            $numfail = count($failed);
+            $numsuccess = $numpeople - $numfail;
+            $table = new html_table();
+            $table->head = array('Linha', 'Usuários não inscritos');
+            $table->data = $failed;
+            $table->tablealign = 'center';
+
+            $output .= $this->box_start();
+            $output .= $this->heading("Foram inscritas {$numsuccess} pessoas com sucesso e {$numfail} falharam:", 3);
+            $output .= html_writer::table($table);
+            $output .= $this->box_end();
+            $output .= $this->continue_button($base_url);
+        }
+
         $output .= $this->page_footer();
 
         return $output;

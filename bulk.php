@@ -86,19 +86,22 @@ if ($formdata = $mform2->is_cancelled()) {
     if (empty($grupotutoria))
         print_error('invalid_grupo_tutoria', 'tool_tutores', $base_url);
 
+    $failed = array();
     while ($line = $cir->next()) {
         $linenum++;
         $username = $line[0];
 
-        add_member_grupo_tutoria($grupotutoria->id, $username);
+        if (!add_member_grupo_tutoria($grupotutoria->id, $username)) {
+            $failed[] = array($linenum, $username);
+        }
     }
 
     // Limpa os arquivos temporários utilizados neste envio
-    $cir->close();
-    $cir->cleanup(true);
+    //$cir->close();
+    //$cir->cleanup(true);
 
     $numpeople = $linenum-1;
-    echo $renderer->display_bulk_results($base_url, $numpeople);
+    echo $renderer->display_bulk_results($base_url, $numpeople, $failed);
     die();
 }
 

@@ -16,8 +16,14 @@ function add_member_grupo_tutoria($grupo, $matricula) {
     $sql = "INSERT INTO {$middleware->table_pessoas_grupos_tutoria}
                         (grupo, matricula)
                  VALUES (:grupo, :matricula)";
+
     $params = array('grupo' => $grupo, 'matricula' => $matricula);
-    return $middleware->db->execute($sql, $params);
+
+    try {
+        return $middleware->db->execute($sql, $params);
+    } catch(dml_write_exception $e) {
+        return false;
+    }
 }
 
 function create_grupo_tutoria($curso_ufsc, $nome) {
