@@ -66,7 +66,7 @@ if (empty($iid)) {
     $filecolumns = validate_upload_grupos_tutoria($cir, $base_url);
 }
 
-$mform2 = new admin_bulk_tutores_confirmation($base_url, array('columns'=>$filecolumns, 'data'=>array('iid'=>$iid)));
+$mform2 = new admin_bulk_tutores_confirmation($base_url, array('columns'=>$filecolumns, 'data'=>array('iid'=>$iid), 'curso_ufsc' => $curso_ufsc));
 
 // If a file has been uploaded, then process it
 if ($formdata = $mform2->is_cancelled()) {
@@ -80,9 +80,17 @@ if ($formdata = $mform2->is_cancelled()) {
     $cir->init();
     $linenum = 1; //column header is first line
 
+    $grupotutoria = get_grupo_tutoria($formdata->grupotutoria);
+
+    // Verifica se o grupo de tutoria existe
+    if (empty($grupotutoria))
+        print_error('invalid_grupo_tutoria', 'tool_tutores', $base_url);
+
     while ($line = $cir->next()) {
         $linenum++;
-        var_dump($line[0]);
+        $username = $line[0];
+
+        add_member_grupo_tutoria($grupotutoria->id, $username);
     }
 
     // Limpa os arquivos temporários utilizados neste envio

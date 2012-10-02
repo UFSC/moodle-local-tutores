@@ -17,5 +17,5 @@ $string['pluginname'] = 'Grupos de Tutoria';
 $string['plugindescription'] = 'Gerencia relação de tutores em um curso';
 $string['settings_estudantes_allowed_roles'] = 'Papéis que reprensetam estudantes';
 $string['settings_tutores_allowed_roles'] = 'Papéis que representam tutores';
-$string['confirm_bulk_operation'] = "Ao prosseguir, você estará cadastrando os usuários enviados no grupo de tutoria selecionado.";
+$string['confirm_bulk_operation'] = "Ao prosseguir, você estará cadastrando os usuários no grupo de tutoria abaixo.";
 $string['tutores'] = 'Tutores';

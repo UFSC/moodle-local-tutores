@@ -40,11 +40,17 @@ class admin_bulk_tutores extends moodleform {
 
 class admin_bulk_tutores_confirmation extends moodleform {
     function definition() {
+        global $OUTPUT;
+
         $mform = $this->_form;
         $data  = $this->_customdata['data'];
+        $curso_ufsc = $this->_customdata['curso_ufsc'];
+        $grupos_tutoria = get_grupos_tutoria_select($curso_ufsc);
 
         $mform->addElement('header', 'bulktutoresheader', get_string('upload'));
-        $mform->addElement('static', 'bulktutoreswarning', get_string('confirm_bulk_operation', 'tool_tutores'));
+        $mform->addElement('html', $OUTPUT->heading(get_string('confirm_bulk_operation', 'tool_tutores'), 3));
+
+        $mform->addElement('select', 'grupotutoria', 'Grupo de Tutoria', $grupos_tutoria);
 
         // hidden fields
         $mform->addElement('hidden', 'iid');

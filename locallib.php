@@ -50,6 +50,12 @@ function get_grupos_tutoria($curso_ufsc) {
     return $middleware->db->get_records_sql($sql, array('curso' => $curso_ufsc));
 }
 
+function get_grupos_tutoria_select($curso_ufsc) {
+    $middleware = Academico::singleton();
+    $sql = "SELECT id, nome FROM {$middleware->table_grupos_tutoria} WHERE curso=:curso ORDER BY nome";
+    return $middleware->db->get_records_sql_menu($sql, array('curso' => $curso_ufsc));
+}
+
 function get_grupos_tutoria_with_members_count($curso_ufsc) {
     global $CFG;
 
