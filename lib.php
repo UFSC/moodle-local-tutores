@@ -48,6 +48,18 @@ class grupos_tutoria {
     }
 
     /**
+     * Retorna os papéis que estão sendo considerados como coordenadores
+     *
+     * @static
+     * @return array
+     */
+    static function get_papeis_coordenadores() {
+        global $CFG;
+
+        return explode(',', $CFG->coordenadores_allowed_roles);
+    }
+
+    /**
      * Retorna lista de todos os papéis que são considerados ou tutor ou estudante
      *
      * @static

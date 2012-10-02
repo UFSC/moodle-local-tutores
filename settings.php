@@ -14,10 +14,15 @@ if ($hassiteconfig) {
     if (!empty($papeis)) {
 
         $settings = new admin_settingpage('grupos_tutoria_settings', get_string('grupos_tutoria_settings', 'tool_tutores'));
-        $settings->add(new admin_setting_configmultiselect('estudantes_allowed_roles', get_string('settings_estudantes_allowed_roles',
-            'tool_tutores'), '', null, $papeis));
-        $settings->add(new admin_setting_configmultiselect('tutores_allowed_roles', get_string('settings_tutores_allowed_roles',
-            'tool_tutores'), '', null, $papeis));
+        $settings->add(new admin_setting_configmultiselect('estudantes_allowed_roles',
+            get_string('settings_estudantes_allowed_roles', 'tool_tutores'),
+            get_string('description_estudantes_allowed_roles', 'tool_tutores'), null, $papeis));
+        $settings->add(new admin_setting_configmultiselect('tutores_allowed_roles',
+            get_string('settings_tutores_allowed_roles', 'tool_tutores'),
+            get_string('description_tutores_allowed_roles', 'tool_tutores'), null, $papeis));
+        $settings->add(new admin_setting_configmultiselect('coordenadores_allowed_roles',
+            get_string('settings_coordenadores_allowed_roles', 'tool_tutores'),
+            get_string('description_coordenadores_allowed_roles', 'tool_tutores'), null, $papeis));
 
         $ADMIN->add('grupostutoria', $settings);
     }
