@@ -4,7 +4,8 @@ defined('MOODLE_INTERNAL') || die();
 
 class tool_tutores_renderer extends plugin_renderer_base {
 
-    private $curso_ativo = null;
+    private $cursos;
+    private $curso_ativo;
 
     public function __construct(moodle_page $page, $target) {
         parent::__construct($page, $target);

@@ -16,11 +16,11 @@ class grupos_tutoria {
         if (!$middleware->configured())
             return false;
 
-        $sql = "SELECT p.* FROM {$middleware->view_usuarios} u
-                  JOIN {$middleware->table_papeis} p ON(u.papel_principal = p.papel)
+        $sql = "SELECT p.* FROM {View_Usuarios} u
+                  JOIN {table_Papeis} p ON(u.papel_principal = p.papel)
               GROUP BY papel_principal";
 
-        return $middleware->db->get_records_sql_menu($sql);
+        return $middleware->get_records_sql_menu($sql);
     }
 
     /**
@@ -78,7 +78,7 @@ class grupos_tutoria {
      * para clausula IN
      *
      * @static
-     * @param $papeis Listagem de papéis em um array simples ([$i => $codigo_papel])
+     * @param $papeis array Listagem de papéis em um array simples ([$i => $codigo_papel])
      * @return string Listagem de papéis, separados por vírgula e com aspas entre eles.
      */
      static function escape_papeis_sql($papeis) {
@@ -136,7 +136,7 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
     }
 
     public function find_users($search) {
-        global $CFG, $DB;
+        global $CFG;
 
         $middleware = Academico::singleton();
 
@@ -148,12 +148,12 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
         $countfields = 'SELECT COUNT(1)';
 
         $sql = " FROM {user} u
-                 JOIN {$middleware->view_usuarios} mid_u
+                 JOIN {View_Usuarios} mid_u
                 USING (username)
                 WHERE $wherecondition
                   AND mnethostid = :localmnet
                   AND mid_u.papel_principal IN ({$allowed_roles_sql})
-                  AND u.username NOT IN (SELECT matricula FROM {$middleware->table_pessoas_grupos_tutoria})";
+                  AND u.username NOT IN (SELECT matricula FROM {table_PessoasGruposTutoria})";
 
         $order = ' ORDER BY lastname ASC, firstname ASC';
 
@@ -162,7 +162,7 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
 
         // Check to see if there are too many to show sensibly.
         if (!$this->is_validating()) {
-            $potentialcount = $DB->count_records_sql($countfields . $sql, $params);
+            $potentialcount = $middleware->count_records_sql($countfields . $sql, $params);
             if ($potentialcount > 100) {
                 return $this->too_many_results($search, $potentialcount);
             }
@@ -172,15 +172,15 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
         $found_users = array();
         foreach ($allowed_roles as $role_key => $role_name) {
             $sql = " FROM {user} u
-                     JOIN {$middleware->view_usuarios} mid_u
+                     JOIN {View_Usuarios} mid_u
                     USING (username)
                     WHERE $wherecondition
                       AND mnethostid = :localmnet
                       AND mid_u.papel_principal=:papel
-                      AND u.username NOT IN (SELECT matricula FROM {$middleware->table_pessoas_grupos_tutoria})";
+                      AND u.username NOT IN (SELECT matricula FROM {table_PessoasGruposTutoria})";
 
             $params['papel'] = $role_key;
-            $users = $DB->get_records_sql($fields . $sql . $order, $params);
+            $users = $middleware->get_records_sql($fields . $sql . $order, $params);
             if (!empty($users)) {
                 $found_users[$role_name] = $users;
             }
@@ -213,7 +213,7 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
         $countfields = 'SELECT COUNT(1)';
 
         $sql = " FROM {user} u
-                 JOIN {$middleware->table_pessoas_grupos_tutoria} pg
+                 JOIN {table_PessoasGruposTutoria} pg
                    ON (u.username=pg.matricula)
                 WHERE $wherecondition
                   AND mnethostid = :localmnet
@@ -228,7 +228,7 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
 
         // Check to see if there are too many to show sensibly.
         if (!$this->is_validating()) {
-            $potentialcount = $DB->count_records_sql($countfields . $sql, $params);
+            $potentialcount = $middleware->count_records_sql($countfields . $sql, $params);
             if ($potentialcount > 100) {
                 return $this->too_many_results($search, $potentialcount);
             }
@@ -238,9 +238,9 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
         $found_users = array();
         foreach ($allowed_roles as $role_key => $role_name) {
             $sql = " FROM {user} u
-                     JOIN {$middleware->table_pessoas_grupos_tutoria} pg
+                     JOIN {table_PessoasGruposTutoria} pg
                        ON (u.username=pg.matricula)
-                     JOIN {$middleware->view_usuarios} mid_u
+                     JOIN {View_Usuarios} mid_u
                     USING (username)
                     WHERE $wherecondition
                       AND mnethostid = :localmnet
@@ -249,7 +249,7 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
 
             $params['papel'] = $role_key;
 
-            $users = $DB->get_records_sql($fields . $sql . $order, $params);
+            $users = $middleware->get_records_sql($fields . $sql . $order, $params);
             if (!empty($users)) {
                 $found_users[$role_name] = $users;
             }
