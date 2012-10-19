@@ -79,17 +79,15 @@ class grupos_tutoria {
     static function get_estudantes_curso_ufsc($curso_ufsc) {
         $middleware = Academico::singleton();
 
-        $sql = " SELECT u.id, CONCAT(u.firstname,' ',u.lastname) as fullname
+        $sql = " SELECT DISTINCT u.id, CONCAT(u.firstname,' ',u.lastname) as fullname
                    FROM {user} u
-                  WHERE username IN (
-                        SELECT matricula
-                          FROM {table_PessoasGruposTutoria} pg
-                          JOIN {table_GruposTutoria} gt
-                            ON (gt.id=pg.grupo)
-                         WHERE gt.curso=:curso_ufsc
-                )";
+                   JOIN {table_PessoasGruposTutoria} pg
+                     ON (pg.matricula=u.username)
+                   JOIN {table_GruposTutoria} gt
+                     ON (gt.id=pg.grupo)
+                  WHERE gt.curso=:curso_ufsc";
 
-        return $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc));
+        return $middleware->get_records_sql_menu($sql, array('curso_ufsc' => $curso_ufsc));
     }
 
     /**
