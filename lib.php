@@ -71,6 +71,28 @@ class grupos_tutoria {
     }
 
     /**
+     * Retorna lista de estudantes inscritos em algum grupo de tutoria de um determinado curso ufsc.
+     *
+     * @param string $curso_ufsc
+     * @return mixed
+     */
+    static function get_estudantes_curso_ufsc($curso_ufsc) {
+        $middleware = Academico::singleton();
+
+        $sql = " SELECT u.id, CONCAT(u.firstname,' ',u.lastname) as fullname
+                   FROM {user} u
+                  WHERE username IN (
+                        SELECT matricula
+                          FROM {table_PessoasGruposTutoria} pg
+                          JOIN {table_GruposTutoria} gt
+                            ON (gt.id=pg.grupo)
+                         WHERE gt.curso=:curso_ufsc
+                )";
+
+        return $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc));
+    }
+
+    /**
      * Coloca aspas em uma listagem de papeis para o MySQL.
      *
      * Este método tenta corrigir uma deficiência do Moodle, que não aceita um array

@@ -17,13 +17,13 @@ class Academico {
      */
     public $db;
 
+    public $lasterror;
+
     /**
      * Padrões de busca e substituição de nomes de tabelas.
      * @var array chave sendo a expressão regular de pesquisa e valor sendo a string de substituição
      */
     private static $patterns;
-
-    private $lasterror;
 
     // Singleton - http://php.net/manual/pt_BR/language.oop5.patterns.php
 
