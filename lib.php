@@ -3,6 +3,9 @@
 require_once("{$CFG->dirroot}/{$CFG->admin}/roles/lib.php");
 require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/middlewarelib.php");
 
+define('GRUPO_TUTORIA_TIPO_ESTUDANTE', 'E');
+define('GRUPO_TUTORIA_TIPO_TUTOR' , 'T');
+
 class grupos_tutoria {
 
     /**
@@ -194,8 +197,8 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
         $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
         $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
 
-        $tutores = (object) array('tipo' => 'T', 'nome' => 'Tutores', 'papeis' => $papeis_tutores);
-        $estudantes = (object) array('tipo' => 'E', 'nome' => 'Estudantes', 'papeis' => $papeis_estudantes);
+        $tutores = (object) array('tipo' => GRUPO_TUTORIA_TIPO_TUTOR, 'nome' => 'Tutores', 'papeis' => $papeis_tutores);
+        $estudantes = (object) array('tipo' => GRUPO_TUTORIA_TIPO_ESTUDANTE, 'nome' => 'Estudantes', 'papeis' => $papeis_estudantes);
 
         $categorias = array($tutores, $estudantes);
 

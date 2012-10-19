@@ -137,8 +137,7 @@ class Academico {
         $rs = $this->execute($sql, $params);
 
         if (!$rs) {
-            $this->lasterror = $this->db->ErrorMsg();
-            return false;
+            throw new dml_read_exception($this->db->ErrorMsg(), $sql, $params);
         }
 
         $result = array();

@@ -174,6 +174,21 @@ function remove_member_grupo_tutoria($grupo, $matricula) {
     return (bool) $middleware->execute($sql, $params);
 }
 
+
+function get_moodle_group_members($groupid) {
+    $middleware = Academico::singleton();
+
+    $sql = "SELECT u.*, vu.papel_principal
+              FROM {user} u
+              JOIN {groups_members} gm
+                ON (gm.userid=u.id AND gm.groupid = ?)
+              JOIN {view_Usuarios} vu
+                ON (vu.username=u.username)
+          ORDER BY u.firstname, u.lastname";
+
+    return $middleware->get_records_sql($sql, array($groupid));
+}
+
 /**
  * Atualiza os dados de um grupo de tutoria existente
  *

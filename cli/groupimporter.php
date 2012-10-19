@@ -6,6 +6,7 @@ require(__DIR__.'/../../../../config.php');
 require_once($CFG->libdir.'/clilib.php');
 require_once($CFG->libdir.'/grouplib.php');
 require_once(__DIR__.'/../locallib.php');
+require_once(__DIR__.'/../lib.php');
 
 $help =
         "Importa participantes de um grupo em um curso moodle para um Grupo de Tutoria.
@@ -53,8 +54,11 @@ if (!isset($options['group'])) {
     if (!groups_group_exists($options['group'])) {
         cli_error('Grupo informado não existe, verifique o ID informado');
     } else {
+        $papeis_estudantes = grupos_tutoria::get_papeis_estudantes();
+        $papeis_tutores = grupos_tutoria::get_papeis_tutores();
+
         $group = groups_get_group($options['group']);
-        $members = groups_get_members($options['group']);
+        $members = get_moodle_group_members($options['group']);
         $count_members = count($members);
         cli_heading("Grupo: {$group->name} ({$count_members} participantes)");
     }
@@ -79,7 +83,15 @@ if ($options['execute']) {
     }
 
     foreach ($members as $member) {
-        $result = add_member_grupo_tutoria($grupo_tutoria, $member->username);
+        $papel = $member->papel_principal;
+
+        if (in_array($papel, $papeis_estudantes)) {
+            $tipo = GRUPO_TUTORIA_TIPO_ESTUDANTE;
+        } else if (in_array($papel, $papeis_tutores)) {
+            $tipo = GRUPO_TUTORIA_TIPO_TUTOR;
+        }
+
+        $result = add_member_grupo_tutoria($grupo_tutoria, $member->username, $tipo);
         if ($result) {
             echo "{$member->firstname} {$member->lastname} \n";
         } else {
