@@ -1,5 +1,7 @@
 <?php
 
+defined('MOODLE_INTERNAL') || die();
+
 require_once("{$CFG->dirroot}/{$CFG->admin}/roles/lib.php");
 require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/middlewarelib.php");
 
@@ -91,6 +93,18 @@ class grupos_tutoria {
                   WHERE gt.curso=:curso_ufsc";
 
         return $middleware->get_records_sql_menu($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_TUTORIA_TIPO_ESTUDANTE));
+    }
+
+    /**
+     * Retorna lista de grupos de tutoria de um determinado curso ufsc
+     * @param string $curso_ufsc
+     * @return array
+     */
+    function get_grupos_tutoria($curso_ufsc) {
+        $middleware = Academico::singleton();
+
+        $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso ORDER BY nome";
+        return $middleware->get_records_sql($sql, array('curso' => $curso_ufsc));
     }
 
     /**

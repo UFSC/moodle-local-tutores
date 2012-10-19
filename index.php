@@ -5,7 +5,7 @@ require_once($CFG->libdir . '/adminlib.php');
 require_once('locallib.php');
 
 require_login();
-require_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM));
+require_capability('tool/tutores:manage', context_system::instance());
 admin_externalpage_setup('tooltutores');
 
 $renderer = $PAGE->get_renderer('tool_tutores');

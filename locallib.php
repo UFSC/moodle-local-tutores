@@ -1,5 +1,7 @@
 <?php
 
+defined('MOODLE_INTERNAL') || die();
+
 require_once($CFG->libdir . '/moodlelib.php');
 require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/middlewarelib.php");
 require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/lib.php");
@@ -75,12 +77,6 @@ function get_grupo_tutoria($id) {
     $middleware = Academico::singleton();
     $sql = "SELECT * FROM {table_GruposTutoria} WHERE id=:id";
     return $middleware->get_record_sql($sql, array('id' => $id));
-}
-
-function get_grupos_tutoria($curso_ufsc) {
-    $middleware = Academico::singleton();
-    $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso ORDER BY nome";
-    return $middleware->get_records_sql($sql, array('curso' => $curso_ufsc));
 }
 
 function get_grupos_tutoria_select($curso_ufsc) {
