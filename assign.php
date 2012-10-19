@@ -36,7 +36,7 @@ if (optional_param('add', false, PARAM_BOOL) && confirm_sesskey()) {
 
         // TODO: verificar permissões
         foreach ($userstoassign as $adduser) {
-            add_member_grupo_tutoria($groupid, $adduser->username);
+            add_member_grupo_tutoria($groupid, $adduser->username, $adduser->tipo);
         }
 
         $potentialmembersselector->invalidate_selected_users();

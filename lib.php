@@ -191,22 +191,32 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
         $found_users = array();
         $empty = array(get_string('none') => array(), get_string('pleasesearchmore') => array());
 
-        $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
         $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
-        $to_query = array( 'Tutores' => $papeis_tutores, 'Estudantes' => $papeis_estudantes);
+        $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
 
-        foreach ($to_query as $categoria => $papeis) {
+        $tutores = (object) array('tipo' => 'T', 'nome' => 'Tutores', 'papeis' => $papeis_tutores);
+        $estudantes = (object) array('tipo' => 'E', 'nome' => 'Estudantes', 'papeis' => $papeis_estudantes);
+
+        $categorias = array($tutores, $estudantes);
+
+        foreach ($categorias as $categoria) {
+
             $sql = " FROM {user} u
                      JOIN {View_Usuarios} mid_u
                     USING (username)
                     WHERE $wherecondition
                       AND mnethostid = :localmnet
-                      AND mid_u.papel_principal IN ({$papeis})
+                      AND mid_u.papel_principal IN ({$categoria->papeis})
                       AND u.username NOT IN (SELECT matricula FROM {table_PessoasGruposTutoria})";
 
             $users = $middleware->get_records_sql($fields . $sql . $order, $params);
             if (!empty($users)) {
-                $found_users[$categoria] = $users;
+
+                // Acrescentar o tipo para facilitar a inclusão
+                foreach ($users as $user) {
+                    $user->tipo = $categoria->tipo;
+                }
+                $found_users[$categoria->nome] = $users;
             }
         }
 

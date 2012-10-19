@@ -11,13 +11,20 @@ require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/lib.php");
  * @param string $matricula código de matrícula do participante
  * @return bool true caso o membro seja adicionado e false caso ocorra um problema
  */
-function add_member_grupo_tutoria($grupo, $matricula) {
-    $middleware = Academico::singleton();
-    $sql = "INSERT INTO {table_PessoasGruposTutoria}
-                        (grupo, matricula)
-                 VALUES (:grupo, :matricula)";
+function add_member_grupo_tutoria($grupo, $matricula, $tipo) {
 
-    $params = array('grupo' => $grupo, 'matricula' => $matricula);
+    $tipos_validos = array('E', 'T');
+    if (!in_array($tipo, $tipos_validos)) {
+        throw new Exception('tipo inválido informado');
+    }
+
+    $middleware = Academico::singleton();
+
+    $sql = "INSERT INTO {table_PessoasGruposTutoria}
+                        (grupo, matricula, tipo)
+                 VALUES (:grupo, :matricula, :tipo)";
+
+    $params = array('grupo' => $grupo, 'matricula' => $matricula, 'tipo' => $tipo);
 
     return (bool) $middleware->insert_record_sql($sql, $params);
 }
@@ -44,9 +51,18 @@ function create_grupo_tutoria($curso_ufsc, $nome) {
  */
 function delete_grupo_tutoria($curso_ufsc, $grupo) {
     $middleware = Academico::singleton();
+
+    $sql = "DELETE FROM {table_PessoasGruposTutoria}
+                  WHERE grupo=:grupo";
+
+    $result = $middleware->execute($sql, array('grupo' => $grupo));
+
     $sql = "DELETE FROM {table_GruposTutoria}
-                  WHERE curso=:curso AND id=:id";
-    return $middleware->execute($sql, array('curso' => $curso_ufsc, 'id' => $grupo));
+             WHERE curso=:curso AND id=:grupo";
+
+    $result2 = $middleware->execute($sql, array('curso' => $curso_ufsc, 'grupo' => $grupo));
+
+    return ($result && $result2);
 }
 
 function get_action_icon($url, $icon, $alt, $tooltip) {
