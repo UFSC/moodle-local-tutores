@@ -100,7 +100,7 @@ class grupos_tutoria {
      * @param string $curso_ufsc
      * @return array
      */
-    function get_grupos_tutoria($curso_ufsc) {
+    static function get_grupos_tutoria($curso_ufsc) {
         $middleware = Academico::singleton();
 
         $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso ORDER BY nome";
@@ -149,6 +149,36 @@ class grupos_tutoria {
 
         return $allowed_roles_sql;
     }
+
+    static function grupo_tutoria_to_string($curso_ufsc, $id){
+        $middleware = Academico::singleton();
+        $sql = " SELECT DISTINCT u.id as user_id, CONCAT(u.firstname,' ',u.lastname) as fullname
+                   FROM {user} u
+                   JOIN {table_PessoasGruposTutoria} pg
+                     ON (pg.matricula=u.username AND pg.tipo=:tipo AND pg.grupo=:grupo_id)
+                   JOIN {table_GruposTutoria} gt
+                     ON (gt.id=pg.grupo)
+                  WHERE gt.curso=:curso_ufsc";
+
+        $tutores = $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc,
+                                                        'tipo' => GRUPO_TUTORIA_TIPO_TUTOR,
+                                                        'grupo_id'=>$id));
+
+
+        $grupos_tutoria = grupos_tutoria::get_grupos_tutoria($curso_ufsc);
+
+        $string = '<strong>'.$grupos_tutoria[$id]->nome.'</strong>';
+        if(empty($tutores)){
+            return $string." - Sem Tutor Responsável";
+        }else{
+            foreach ($tutores as $tutor){
+                $string.= ' - '.$tutor->fullname.' ';
+            }
+        }
+        return $string;
+    }
+
+
 }
 
 abstract class tutor_selector_base extends user_selector_base {
