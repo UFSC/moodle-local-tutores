@@ -85,12 +85,32 @@ class grupos_tutoria {
         $sql = " SELECT DISTINCT u.id, CONCAT(u.firstname,' ',u.lastname) as fullname
                    FROM {user} u
                    JOIN {table_PessoasGruposTutoria} pg
-                     ON (pg.matricula=u.username)
+                     ON (pg.matricula=u.username AND pg.tipo=:tipo)
                    JOIN {table_GruposTutoria} gt
                      ON (gt.id=pg.grupo)
                   WHERE gt.curso=:curso_ufsc";
 
-        return $middleware->get_records_sql_menu($sql, array('curso_ufsc' => $curso_ufsc));
+        return $middleware->get_records_sql_menu($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_TUTORIA_TIPO_ESTUDANTE));
+    }
+
+    /**
+     * Retorna lista de tutores inscritos em algum grupo de tutoria de um determinado curso ufsc.
+     *
+     * @param string $curso_ufsc
+     * @return mixed
+     */
+    static function get_tutores_curso_ufsc($curso_ufsc) {
+        $middleware = Academico::singleton();
+
+        $sql = " SELECT DISTINCT u.id, CONCAT(u.firstname,' ',u.lastname) as fullname
+                   FROM {user} u
+                   JOIN {table_PessoasGruposTutoria} pg
+                     ON (pg.matricula=u.username AND pg.tipo=:tipo)
+                   JOIN {table_GruposTutoria} gt
+                     ON (gt.id=pg.grupo)
+                  WHERE gt.curso=:curso_ufsc";
+
+        return $middleware->get_records_sql_menu($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_TUTORIA_TIPO_TUTOR));
     }
 
     /**
