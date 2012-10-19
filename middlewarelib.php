@@ -174,6 +174,39 @@ class Academico {
     }
 
     /**
+     * Retorna o RecordSet da consulta e permite manipulações mais avançadas dos dados.
+     *
+     * @param string $sql
+     * @param array $params
+     * @param int $limitfrom
+     * @param int $limitnum
+     * @return ADORecordSet|bool
+     * @throws dml_read_exception
+     */
+    public function get_recordset_sql($sql, array $params=null, $limitfrom=0, $limitnum=0) {
+
+        $limitfrom = (int)$limitfrom;
+        $limitnum  = (int)$limitnum;
+        $limitfrom = ($limitfrom < 0) ? 0 : $limitfrom;
+        $limitnum  = ($limitnum < 0)  ? 0 : $limitnum;
+
+        if ($limitfrom or $limitnum) {
+            if ($limitnum < 1) {
+                $limitnum = "18446744073709551615";
+            }
+            $sql .= " LIMIT $limitfrom, $limitnum";
+        }
+
+        $rs = $this->execute($sql, $params);
+
+        if (!$rs) {
+            throw new dml_read_exception($this->db->ErrorMsg(), $sql, $params);
+        }
+
+        return $rs;
+    }
+
+    /**
      * @param string $sql
      * @param array $params
      * @return bool|int
