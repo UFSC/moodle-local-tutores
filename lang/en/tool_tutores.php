@@ -24,3 +24,4 @@ $string['settings_estudantes_allowed_roles'] = 'Estudantes';
 $string['settings_tutores_allowed_roles'] = 'Tutores';
 $string['confirm_bulk_operation'] = "Ao prosseguir, você estará cadastrando os usuários no grupo de tutoria abaixo.";
 $string['tutores'] = 'Tutores';
+$string['tutores:manage'] = 'Gerenciar grupos de tutoria';
