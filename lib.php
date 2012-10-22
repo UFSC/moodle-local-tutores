@@ -16,7 +16,7 @@ class grupos_tutoria {
      * @return array papéis disponíveis para seleção
      */
     static function get_papeis_ufsc() {
-        $middleware = Academico::singleton();
+        $middleware = Middleware::singleton();
 
         if (!$middleware->configured())
             return false;
@@ -82,7 +82,7 @@ class grupos_tutoria {
      * @return mixed
      */
     static function get_estudantes_curso_ufsc($curso_ufsc) {
-        $middleware = Academico::singleton();
+        $middleware = Middleware::singleton();
 
         $sql = " SELECT DISTINCT u.id, CONCAT(u.firstname,' ',u.lastname) as fullname
                    FROM {user} u
@@ -101,7 +101,7 @@ class grupos_tutoria {
      * @return array
      */
     static function get_grupos_tutoria($curso_ufsc) {
-        $middleware = Academico::singleton();
+        $middleware = Middleware::singleton();
 
         $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso ORDER BY nome";
         return $middleware->get_records_sql($sql, array('curso' => $curso_ufsc));
@@ -114,7 +114,7 @@ class grupos_tutoria {
      * @return mixed
      */
     static function get_tutores_curso_ufsc($curso_ufsc) {
-        $middleware = Academico::singleton();
+        $middleware = Middleware::singleton();
 
         $sql = " SELECT DISTINCT u.id, CONCAT(u.firstname,' ',u.lastname) as fullname
                    FROM {user} u
@@ -151,7 +151,7 @@ class grupos_tutoria {
     }
 
     static function grupo_tutoria_to_string($curso_ufsc, $id){
-        $middleware = Academico::singleton();
+        $middleware = Middleware::singleton();
         $sql = " SELECT DISTINCT u.id as user_id, CONCAT(u.firstname,' ',u.lastname) as fullname
                    FROM {user} u
                    JOIN {table_PessoasGruposTutoria} pg
@@ -225,7 +225,7 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
     public function find_users($search) {
         global $CFG;
 
-        $middleware = Academico::singleton();
+        $middleware = Middleware::singleton();
 
         $allowed_roles_sql = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_participantes_possiveis());
 
@@ -304,7 +304,7 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
     public function find_users($search) {
         global $CFG, $DB;
 
-        $middleware = Academico::singleton();
+        $middleware = Middleware::singleton();
 
         list($wherecondition, $params) = $this->search_sql($search, 'u');
 

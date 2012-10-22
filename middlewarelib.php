@@ -7,7 +7,7 @@ require_once($CFG->libdir.'/adodb/adodb.inc.php');
 /**
  * Classe de conexão com o Middleware UFSC (Singleton)
  */
-class Academico {
+class Middleware {
 
     /**
      * Objeto de conexão com o banco de dados.
@@ -38,7 +38,7 @@ class Academico {
     /**
      * Singleton - Retorna instância única da classe
      *
-     * @return Academico instância da classe
+     * @return Middleware instância da classe
      */
     public static function singleton() {
         if (!isset(self::$instance)) {

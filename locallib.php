@@ -20,7 +20,7 @@ function add_member_grupo_tutoria($grupo, $matricula, $tipo) {
         throw new Exception('tipo inválido informado');
     }
 
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
 
     $sql = "INSERT INTO {table_PessoasGruposTutoria}
                         (grupo, matricula, tipo)
@@ -39,7 +39,7 @@ function add_member_grupo_tutoria($grupo, $matricula, $tipo) {
  * @return int|bool retorna o código do grupo de tutoria ou false caso ocorra um problema
  */
 function create_grupo_tutoria($curso_ufsc, $nome) {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
     $sql = "INSERT INTO {table_GruposTutoria} (nome, curso) VALUES(:nome, :curso)";
     $params = array('nome' => $nome, 'curso' => $curso_ufsc);
 
@@ -52,7 +52,7 @@ function create_grupo_tutoria($curso_ufsc, $nome) {
  * @return ADORecordSet|bool
  */
 function delete_grupo_tutoria($curso_ufsc, $grupo) {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
 
     $sql = "DELETE FROM {table_PessoasGruposTutoria}
                   WHERE grupo=:grupo";
@@ -74,19 +74,19 @@ function get_action_icon($url, $icon, $alt, $tooltip) {
 }
 
 function get_grupo_tutoria($id) {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
     $sql = "SELECT * FROM {table_GruposTutoria} WHERE id=:id";
     return $middleware->get_record_sql($sql, array('id' => $id));
 }
 
 function get_grupos_tutoria_select($curso_ufsc) {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
     $sql = "SELECT id, nome FROM {table_GruposTutoria} WHERE curso=:curso ORDER BY nome";
     return $middleware->get_records_sql_menu($sql, array('curso' => $curso_ufsc));
 }
 
 function get_grupos_tutoria_with_members_count($curso_ufsc) {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
     $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
     $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
 
@@ -121,7 +121,7 @@ function get_grupos_tutoria_with_members_count($curso_ufsc) {
 }
 
 function get_cursos_ativos_list() {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
     $sql = "SELECT curso, nome_sintetico
               FROM {View_Cursos_Ativos}";
     return $middleware->get_records_sql_menu($sql);
@@ -138,7 +138,7 @@ function get_curso_ufsc_id() {
  * @return array lista de participantes ou false em caso de falha
  */
 function get_members_grupo_tutoria($grupo) {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
 
     $sql = "SELECT u.*
               FROM {user} u
@@ -162,7 +162,7 @@ function redirect_to_gerenciar_tutores() {
  * @return bool
  */
 function remove_member_grupo_tutoria($grupo, $matricula) {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
     $sql = "DELETE FROM {table_PessoasGruposTutoria}
                   WHERE grupo=:grupo AND matricula=:matricula";
 
@@ -172,7 +172,7 @@ function remove_member_grupo_tutoria($grupo, $matricula) {
 
 
 function get_moodle_group_members($groupid) {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
 
     $sql = "SELECT u.*, vu.papel_principal
               FROM {user} u
@@ -194,7 +194,7 @@ function get_moodle_group_members($groupid) {
  * @return bool
  */
 function update_grupo_tutoria($curso_ufsc, $grupo, $nome) {
-    $middleware = Academico::singleton();
+    $middleware = Middleware::singleton();
     $sql = "UPDATE {table_GruposTutoria} SET nome=? WHERE curso=? AND id=?";
     return (bool) $middleware->execute($sql, array($nome, $curso_ufsc, $grupo));
 }
