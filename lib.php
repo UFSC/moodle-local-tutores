@@ -25,7 +25,12 @@ class grupos_tutoria {
                   JOIN {table_Papeis} p ON(u.papel_principal = p.papel)
               GROUP BY papel_principal";
 
-        return $middleware->get_records_sql_menu($sql);
+        try {
+            return $middleware->get_records_sql_menu($sql);
+        } catch (dml_read_exception $e) {
+            return false;
+        }
+
     }
 
     /**
