@@ -63,16 +63,16 @@ class Middleware {
         // Carrega configurações de prefixo do banco de dados do Moodle
         $moodle_prefix = empty($CFG->prefix) ? $CFG->dbname : "{$CFG->dbname}.{$CFG->prefix}";
 
+        // Verifica se o plugin está configurado
+        if (empty($config->dbname) || empty($config->contexto))
+            return false;
+
         // Configura padrões de substituição de nomes de tabelas no SQL
         self::$patterns = array(
             '/\{view_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_' . $config->contexto . '_$1',
             '/\{geral_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_Geral_$1',
             '/\{table_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.$1',
             '/\{([a-z][a-z0-9_]*)\}/' => $moodle_prefix.'.$1'); // regexp do moodle, precisa ser o útlimo
-
-        // Verifica se o plugin está configurado
-        if (!isset($config->dbname) && !isset($config->contexto))
-            return false;
 
         // Inicializa conexão com a base de dados
         $db = $this->db_init($config);
