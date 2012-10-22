@@ -15,7 +15,7 @@ raise_memory_limit(MEMORY_HUGE);
 
 // login e permissões
 require_login();
-require_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM));
+require_capability('tool/tutores:manage', context_system::instance());
 admin_externalpage_setup('tooltutoresbulk');
 
 /** @var $renderer tool_tutores_renderer */
