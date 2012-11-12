@@ -6,7 +6,7 @@ require_once("{$CFG->dirroot}/{$CFG->admin}/roles/lib.php");
 require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/middlewarelib.php");
 
 define('GRUPO_TUTORIA_TIPO_ESTUDANTE', 'E');
-define('GRUPO_TUTORIA_TIPO_TUTOR' , 'T');
+define('GRUPO_TUTORIA_TIPO_TUTOR', 'T');
 
 class grupos_tutoria {
 
@@ -30,7 +30,6 @@ class grupos_tutoria {
         } catch (dml_read_exception $e) {
             return false;
         }
-
     }
 
     /**
@@ -105,11 +104,62 @@ class grupos_tutoria {
      * @param string $curso_ufsc
      * @return array
      */
-    static function get_grupos_tutoria($curso_ufsc) {
+    static function get_grupos_tutoria($curso_ufsc, $tutores = null) {
         $middleware = Middleware::singleton();
+        $sql;
+        if(is_null($tutores))
+            $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso_ufsc ORDER BY nome";
+        else{
+            $tutores = int_array_to_sql($tutores);
+            $sql = "SELECT gt.id, gt.curso, gt.nome FROM {table_GruposTutoria} gt
+                      JOIN {table_PessoasGruposTutoria} pg
+                        ON (gt.id=pg.grupo AND gt.curso=:curso_ufsc)
+                      JOIN {user} u
+                        ON (pg.matricula=u.username AND pg.tipo=:tipo)
+                     WHERE u.id IN ({$tutores})";
+        }
+        return $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_TUTORIA_TIPO_TUTOR));
+    }
 
-        $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso ORDER BY nome";
-        return $middleware->get_records_sql($sql, array('curso' => $curso_ufsc));
+    /**
+     * Utilizado para a criacao do filtro Tutores
+     *
+     * @param string $curso_ufsc
+     * @return array
+     */
+    static function get_chave_valor_grupos_tutoria($curso_ufsc) {
+        $middleware = Middleware::singleton();
+        $sql = " SELECT DISTINCT u.id as user_id,  CONCAT(u.firstname,' ',u.lastname) as fullname, pg.grupo
+                   FROM {user} u
+                   JOIN {table_PessoasGruposTutoria} pg
+                     ON (pg.matricula=u.username AND pg.tipo=:tipo)
+                   JOIN {table_GruposTutoria} gt
+                     ON (gt.id=pg.grupo)
+                  WHERE gt.curso=:curso_ufsc";
+
+        $tutores = $middleware->get_recordset_sql($sql, array('curso_ufsc' => $curso_ufsc,
+            'tipo' => GRUPO_TUTORIA_TIPO_TUTOR));
+
+
+
+
+        $dados = new GroupArray();
+        foreach ($tutores as $tutor) {
+            $dados->add($tutor->grupo, array($tutor->id => $tutor->fullname));
+        }
+        $dados = $dados->get_assoc();
+
+
+        $grupos_tutoria = grupos_tutoria::get_grupos_tutoria($curso_ufsc);
+
+        foreach ($grupos_tutoria as $grupo) {
+            if(array_key_exists($grupo->id, $dados)){
+
+            }else{
+                $dados[$grupo->id] = $grupo->nome;
+            }
+        }
+        return $dados;
     }
 
     /**
@@ -143,7 +193,7 @@ class grupos_tutoria {
      * @param $papeis array Listagem de papéis em um array simples ([$i => $codigo_papel])
      * @return string Listagem de papéis, separados por vírgula e com aspas entre eles.
      */
-     static function escape_papeis_sql($papeis) {
+    static function escape_papeis_sql($papeis) {
         $allowed_roles = $papeis;
 
         $allowed_roles_sql = array();
@@ -155,7 +205,7 @@ class grupos_tutoria {
         return $allowed_roles_sql;
     }
 
-    static function grupo_tutoria_to_string($curso_ufsc, $id){
+    static function grupo_tutoria_to_string($curso_ufsc, $id) {
         $middleware = Middleware::singleton();
         $sql = " SELECT DISTINCT u.id as user_id, CONCAT(u.firstname,' ',u.lastname) as fullname
                    FROM {user} u
@@ -166,23 +216,22 @@ class grupos_tutoria {
                   WHERE gt.curso=:curso_ufsc";
 
         $tutores = $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc,
-                                                        'tipo' => GRUPO_TUTORIA_TIPO_TUTOR,
-                                                        'grupo_id'=>$id));
+            'tipo' => GRUPO_TUTORIA_TIPO_TUTOR,
+            'grupo_id' => $id));
 
 
         $grupos_tutoria = grupos_tutoria::get_grupos_tutoria($curso_ufsc);
 
-        $string = '<strong>'.$grupos_tutoria[$id]->nome.'</strong>';
-        if(empty($tutores)){
-            return $string." - Sem Tutor Responsável";
-        }else{
-            foreach ($tutores as $tutor){
-                $string.= ' - '.$tutor->fullname.' ';
+        $string = '<strong>' . $grupos_tutoria[$id]->nome . '</strong>';
+        if (empty($tutores)) {
+            return $string . " - Sem Tutor Responsável";
+        } else {
+            foreach ($tutores as $tutor) {
+                $string.= ' - ' . $tutor->fullname . ' ';
             }
         }
         return $string;
     }
-
 
 }
 
@@ -215,6 +264,7 @@ abstract class tutor_selector_base extends user_selector_base {
 
         return $named_roles;
     }
+
 }
 
 class usuarios_tutoria_potential_selector extends tutor_selector_base {
@@ -250,8 +300,6 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
         $order = ' ORDER BY lastname ASC, firstname ASC';
 
         $params['localmnet'] = $CFG->mnet_localhost_id; // it could be dangerous to make remote users admins and also this could lead to other problems
-
-
         // Check to see if there are too many to show sensibly.
         if (!$this->is_validating()) {
             $potentialcount = $middleware->count_records_sql($countfields . $sql, $params);
@@ -294,6 +342,7 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
 
         return empty($found_users) ? $empty : $found_users;
     }
+
 }
 
 class usuarios_tutoria_existing_selector extends tutor_selector_base {
@@ -364,4 +413,5 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
 
         return empty($found_users) ? $empty : $found_users;
     }
+
 }
