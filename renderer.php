@@ -13,6 +13,11 @@ class tool_tutores_renderer extends plugin_renderer_base {
         // Carrega informações sobre cursos UFSC
         $this->cursos = get_cursos_ativos_list();
         $this->curso_ativo = get_curso_ufsc_id();
+
+        if (!empty($this->curso_ativo)) {
+            $context = get_category_context_from_curso_ufsc($this->curso_ativo);
+            require_capability('tool/tutores:manage', $context, null, false);
+        }
     }
 
     public function choose_curso_ufsc_page($destination_url) {

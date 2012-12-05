@@ -73,6 +73,13 @@ function get_action_icon($url, $icon, $alt, $tooltip) {
             '<img src="' . $OUTPUT->pix_url('t/' . $icon) . '" class="iconsmall" alt="' . $alt . '" /></a> ';
 }
 
+function get_category_context_from_curso_ufsc($curso_ufsc) {
+    global $DB;
+
+    $categoryid = $DB->get_field('course_categories', 'id', array('idnumber' => "curso_{$curso_ufsc}"));
+    return context_coursecat::instance($categoryid);
+}
+
 function get_grupo_tutoria($id) {
     $middleware = Middleware::singleton();
     $sql = "SELECT * FROM {table_GruposTutoria} WHERE id=:id";
