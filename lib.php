@@ -183,6 +183,39 @@ class grupos_tutoria {
     }
 
     /**
+     * Retorna o tutor responsável em um curso_ufsc por um estudante
+     *
+     * @param string $curso_ufsc
+     * @param string $matricula_estudante
+     * @return bool|mixed
+     */
+    static function get_tutor_responsavel_estudante($curso_ufsc, $matricula_estudante) {
+        $middleware = Middleware::singleton();
+
+        $sql = " SELECT DISTINCT u.id, CONCAT(u.firstname,' ',u.lastname) as fullname
+                   FROM {user} u
+                   JOIN {table_PessoasGruposTutoria} pg
+                     ON (pg.matricula=u.username AND pg.tipo=:tipo_tutor)
+                   JOIN (
+                         SELECT DISTINCT gt.*
+                           FROM {user} u
+                           JOIN {table_PessoasGruposTutoria} pg
+                             ON (pg.matricula=u.username AND pg.tipo=:tipo_estudante)
+                           JOIN {table_GruposTutoria} gt
+                             ON (gt.id=pg.grupo)
+                          WHERE gt.curso=:curso AND pg.matricula=:estudante
+                         ) grupo_estudante
+                     ON (grupo_estudante.id=pg.grupo)";
+
+        $params = array('curso' => $curso_ufsc,
+                        'tipo_estudante' => GRUPO_TUTORIA_TIPO_ESTUDANTE,
+                        'estudante' => $matricula_estudante,
+                        'tipo_tutor' => GRUPO_TUTORIA_TIPO_TUTOR);
+
+        return $middleware->get_record_sql($sql, $params);
+    }
+
+    /**
      * Coloca aspas em uma listagem de papeis para o MySQL.
      *
      * Este método tenta corrigir uma deficiência do Moodle, que não aceita um array
