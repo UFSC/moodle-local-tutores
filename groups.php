@@ -1,17 +1,26 @@
 <?php
-require_once('../../../config.php');
+require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once('locallib.php');
 require_once('group_form.php');
 
-require_login();
-require_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM));
-admin_externalpage_setup('tooltutores');
-
-$renderer = $PAGE->get_renderer('tool_tutores');
-$curso_ufsc = get_curso_ufsc_id();
 $action = required_param('action', PARAM_ALPHANUMEXT);
-$base_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $curso_ufsc));
+$categoryid = required_param('categoryid', PARAM_INT);
+$context = context_coursecat::instance($categoryid);
+$base_url = new moodle_url('/local/tutores/groups.php', array('categoryid' => $categoryid));
+
+$PAGE->set_url($base_url);
+$PAGE->set_context($context);
+$PAGE->set_pagelayout('standard');
+$PAGE->set_title(get_string('pluginname', 'local_tutores'));
+$PAGE->set_heading(get_string('pluginname', 'local_tutores'));
+
+require_login();
+require_capability('tool/tutores:manage', $context);
+
+$renderer = $PAGE->get_renderer('local_tutores');
+$curso_ufsc = get_curso_ufsc_id();
+
 
 switch ($action) {
     case 'add':
@@ -54,7 +63,7 @@ switch ($action) {
 
         if (empty($grupo)) {
             echo $renderer->page_header('index');
-            print_error('invalid_grupo_tutoria', 'tool_tutores');
+            print_error('invalid_grupo_tutoria', 'local_tutores');
         } else {
             delete_grupo_tutoria($curso_ufsc, $id_grupo);
             redirect_to_gerenciar_tutores();
@@ -63,10 +72,9 @@ switch ($action) {
 
     default:
         echo $renderer->page_header('index');
-        print_error('invalid_action', 'tool_tutores');
+        print_error('invalid_action', 'local_tutores');
         break;
 }
 
 // Imprime o restante da página
 echo $renderer->page_footer();
-?>

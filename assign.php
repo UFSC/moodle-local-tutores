@@ -1,20 +1,27 @@
 <?php
-
-require_once('../../../config.php');
+require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once('locallib.php');
 
-$page_url = '/admin/tool/tutores/assign.php';
 $groupid = required_param('id', PARAM_INT);
-$curso_ufsc = required_param('curso_ufsc', PARAM_INT);
-$backto_url = new moodle_url('/admin/tool/tutores/index.php', array('curso_ufsc' => $curso_ufsc));
+$categoryid = required_param('categoryid', PARAM_INT);
+$context = context_coursecat::instance($categoryid);
+
+$base_url = new moodle_url('/local/tutores/assign.php', array('categoryid' => $categoryid, 'id' => $groupid));
+$backto_url = new moodle_url('/local/tutores/index.php', array('categoryid' => $categoryid));
+
+$PAGE->set_url($base_url);
+$PAGE->set_context($context);
+$PAGE->set_pagelayout('standard');
+$PAGE->set_title(get_string('pluginname', 'local_tutores'));
+$PAGE->set_heading(get_string('pluginname', 'local_tutores'));
 
 require_login();
-require_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM));
-admin_externalpage_setup('tooltutores', '', array('curso_ufsc' => $curso_ufsc, 'id' => $groupid), $page_url);
+require_capability('tool/tutores:manage', $context);
 
-$renderer = $PAGE->get_renderer('tool_tutores');
-
+$renderer = $PAGE->get_renderer('local_tutores');
+$curso_ufsc = get_curso_ufsc_id();
+$grupo_tutoria = get_grupo_tutoria($groupid);
 
 // Opções passadas ao seletor de usuários
 $options = array('grupo' => $groupid);
@@ -71,7 +78,7 @@ echo $renderer->page_header('assign');
 
 
 <div id="addadmisform">
-    <?php echo $OUTPUT->heading(get_string('definir_permissoes_curso', 'tool_tutores', 'Saúde da Família'), 3); ?>
+    <?php echo $OUTPUT->heading(get_string('definir_permissoes_curso', 'local_tutores', $grupo_tutoria->nome), 3); ?>
 
     <form id="assignform" method="post" action="<?php echo $PAGE->url ?>">
         <div>
@@ -115,7 +122,7 @@ echo $renderer->page_header('assign');
 
 <?php
 echo html_writer::start_tag('div', array('class'=>'backlink'));
-echo html_writer::link($backto_url, get_string('backto_grupos_tutoria', 'tool_tutores'));
+echo html_writer::link($backto_url, get_string('backto_grupos_tutoria', 'local_tutores'));
 echo html_writer::end_tag('div');
 
 echo $renderer->page_footer();

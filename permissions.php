@@ -9,7 +9,7 @@ require_login();
 require_capability('moodle/site:config', get_context_instance(CONTEXT_SYSTEM));
 admin_externalpage_setup('tooltutores');
 
-$renderer = $PAGE->get_renderer('tool_tutores');
+$renderer = $PAGE->get_renderer('local_tutores');
 
 // Select de usuários
 
@@ -29,7 +29,7 @@ echo $renderer->page_header('permission');
 // Conteúdo
 ?>
 <div id="addadmisform">
-    <?php echo $OUTPUT->heading(get_string('definir_permissoes_curso', 'tool_tutores', 'Saúde da Família'), 3); ?>
+    <?php echo $OUTPUT->heading(get_string('definir_permissoes_curso', 'local_tutores', 'Saúde da Família'), 3); ?>
 
     <form id="assignform" method="post" action="<?php echo $PAGE->url ?>">
         <div>

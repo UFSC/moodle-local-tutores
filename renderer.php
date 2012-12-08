@@ -2,44 +2,15 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-class tool_tutores_renderer extends plugin_renderer_base {
+class local_tutores_renderer extends plugin_renderer_base {
 
-    private $cursos;
     private $curso_ativo;
 
     public function __construct(moodle_page $page, $target) {
         parent::__construct($page, $target);
 
-        // Carrega informações sobre cursos UFSC
-        $this->cursos = get_cursos_ativos_list();
+        $this->categoryid = required_param('categoryid', PARAM_INT);
         $this->curso_ativo = get_curso_ufsc_id();
-
-        if (!empty($this->curso_ativo)) {
-            $context = get_category_context_from_curso_ufsc($this->curso_ativo);
-            require_capability('tool/tutores:manage', $context, null, false);
-        }
-    }
-
-    public function choose_curso_ufsc_page($destination_url) {
-
-        // Imprime cabeçalho da página
-        $output = $this->header();
-        $output .= $this->heading(get_string('grupos_tutoria', 'tool_tutores'));
-
-        $table = new html_table();
-        $table->head = array(get_string('cursos_ufsc', 'tool_tutores'));
-        $table->tablealign = 'center';
-        $table->data = array();
-
-        foreach ($this->cursos as $id_curso => $nome_curso) {
-            $url = new moodle_url($destination_url . '?curso_ufsc=' . $id_curso);
-            $table->data[] = array(html_writer::link($url, $nome_curso));
-        }
-
-        $output .= html_writer::table($table);
-
-        $output .= $this->page_footer();
-        return $output;
     }
 
     /**
@@ -53,20 +24,20 @@ class tool_tutores_renderer extends plugin_renderer_base {
         // Tabela
         $table = new html_table();
         $table->head = array(
-            get_string('grupos_tutoria', 'tool_tutores'),
-            get_string('member_count', 'tool_tutores'),
-            get_string('tutores', 'tool_tutores'),
+            get_string('grupos_tutoria', 'local_tutores'),
+            get_string('member_count', 'local_tutores'),
+            get_string('tutores', 'local_tutores'),
             get_string('edit'));
         $table->tablealign = 'center';
         $table->data = array();
 
-        $add_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'action' => 'add'));
-        $add_controls = $this->heading(html_writer::link($add_url, get_string('addnewgroup', 'tool_tutores')));
+        $add_url = new moodle_url('/local/tutores/groups.php', array('categoryid' => $this->categoryid, 'action' => 'add'));
+        $add_controls = $this->heading(html_writer::link($add_url, get_string('addnewgroup', 'local_tutores')));
 
         foreach ($grupos as $grupo) {
-            $url = new moodle_url('/admin/tool/tutores/assign.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->grupo));
-            $edit_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->grupo, 'action' => 'edit'));
-            $delete_url = new moodle_url('/admin/tool/tutores/groups.php', array('curso_ufsc' => $this->curso_ativo, 'id' => $grupo->grupo, 'action' => 'delete'));
+            $url = new moodle_url('/local/tutores/assign.php', array('categoryid' => $this->categoryid, 'id' => $grupo->grupo));
+            $edit_url = new moodle_url('/local/tutores/groups.php', array('categoryid' => $this->categoryid, 'id' => $grupo->grupo, 'action' => 'edit'));
+            $delete_url = new moodle_url('/local/tutores/groups.php', array('categoryid' => $this->categoryid, 'id' => $grupo->grupo, 'action' => 'delete'));
             $controls = get_action_icon($edit_url, 'edit', get_string('edit'), get_string('edit')) .
                         get_action_icon($delete_url, 'delete', get_string('delete'), get_string('delete'));
 
@@ -85,17 +56,9 @@ class tool_tutores_renderer extends plugin_renderer_base {
     public function page_header() {
         $output = '';
 
-        // Configura seletor de cursos UFSC
-        $select = new single_select(new moodle_url('/admin/tool/tutores/index.php'), 'curso_ufsc', $this->cursos, $this->curso_ativo, null, 'switch_curso_ufsc');
-        $select->set_label(get_string('curso', 'tool_tutores') . ':');
-        $select->class = 'cursos_ufsc_select generalbox';
-
         // Imprime cabeçalho da página
         $output .= $this->header();
-        $output .= $this->heading(get_string('grupos_tutoria', 'tool_tutores'));
-
-        // Imprime seletor de curso UFSC ativo
-        $output .= $this->render($select);
+        $output .= $this->heading(get_string('grupos_tutoria', 'local_tutores'));
 
         return $output;
     }

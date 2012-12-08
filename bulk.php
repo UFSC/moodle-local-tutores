@@ -1,6 +1,6 @@
 <?php
 
-require_once('../../../config.php');
+require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir.'/csvlib.class.php');
 require_once('locallib.php');
@@ -15,7 +15,8 @@ raise_memory_limit(MEMORY_HUGE);
 
 // login e permissões
 require_login();
-require_capability('tool/tutores:manage', context_system::instance());
+print_error("Desabilitado");
+die();
 admin_externalpage_setup('tooltutoresbulk');
 
 /** @var $renderer tool_tutores_renderer */
@@ -91,14 +92,20 @@ if ($formdata = $mform2->is_cancelled()) {
         $linenum++;
         $username = $line[0];
 
-        if (!add_member_grupo_tutoria($grupotutoria->id, $username)) {
+        if (in_array($papel, $papeis_estudantes)) {
+            $tipo = GRUPO_TUTORIA_TIPO_ESTUDANTE;
+        } else if (in_array($papel, $papeis_tutores)) {
+            $tipo = GRUPO_TUTORIA_TIPO_TUTOR;
+        }
+
+        if (!add_member_grupo_tutoria($grupotutoria->id, $username, $tipo)) {
             $failed[] = array($linenum, $username);
         }
     }
 
     // Limpa os arquivos temporários utilizados neste envio
-    //$cir->close();
-    //$cir->cleanup(true);
+    $cir->close();
+    $cir->cleanup(true);
 
     $numpeople = $linenum-1;
     echo $renderer->display_bulk_results($base_url, $numpeople, $failed);

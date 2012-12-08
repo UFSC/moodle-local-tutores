@@ -3,8 +3,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/moodlelib.php');
-require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/middlewarelib.php");
-require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/lib.php");
+require_once("{$CFG->dirroot}/local/tutores/middlewarelib.php");
+require_once("{$CFG->dirroot}/local/tutores/lib.php");
 
 /**
  * Adiciona uma pessoa a um grupo de tutoria
@@ -129,13 +129,22 @@ function get_grupos_tutoria_with_members_count($curso_ufsc) {
 
 function get_cursos_ativos_list() {
     $middleware = Middleware::singleton();
+
     $sql = "SELECT curso, nome_sintetico
               FROM {View_Cursos_Ativos}";
+
     return $middleware->get_records_sql_menu($sql);
 }
 
 function get_curso_ufsc_id() {
-    return optional_param('curso_ufsc', null, PARAM_INT);
+    $categoryid = required_param('categoryid', PARAM_INT);
+    $category = get_course_category($categoryid);
+
+    if (!$category->idnumber) {
+        return false;
+    }
+
+    return str_replace('curso_', '', $category->idnumber, $count);
 }
 
 /**
@@ -158,7 +167,8 @@ function get_members_grupo_tutoria($grupo) {
 }
 
 function redirect_to_gerenciar_tutores() {
-    redirect(new moodle_url('/admin/tool/tutores/index.php', array('curso_ufsc' => get_curso_ufsc_id())));
+    $categoryid = required_param('categoryid', PARAM_INT);
+    redirect(new moodle_url('/local/tutores/index.php', array('categoryid' => $categoryid)));
 }
 
 /**

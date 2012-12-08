@@ -3,10 +3,22 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once("{$CFG->dirroot}/{$CFG->admin}/roles/lib.php");
-require_once("{$CFG->dirroot}/{$CFG->admin}/tool/tutores/middlewarelib.php");
+require_once("{$CFG->dirroot}/local/tutores/middlewarelib.php");
 
 define('GRUPO_TUTORIA_TIPO_ESTUDANTE', 'E');
 define('GRUPO_TUTORIA_TIPO_TUTOR', 'T');
+
+function local_tutores_extends_settings_navigation(navigation_node $navigation) {
+    global $PAGE;
+
+    if (is_a($PAGE->context, 'context_coursecat')) {
+        $category_node = $navigation->get(0);
+
+        $grupostutoria_node = $category_node->add(get_string('grupos_tutoria', 'local_tutores'), null, navigation_node::TYPE_CONTAINER);
+        $grupostutoria_node->add(get_string('manage_groups', 'local_tutores'), new moodle_url('/local/tutores/index.php', array('categoryid' => $PAGE->context->instanceid)));
+        //$grupostutoria_node->add(get_string('bulk_upload_groups', 'local_tutores'), new moodle_url('/local/tutores/bulk.php', array('categoryid' => $PAGE->context->instanceid)));
+    }
+}
 
 class grupos_tutoria {
 
@@ -278,15 +290,13 @@ abstract class tutor_selector_base extends user_selector_base {
     }
 
     protected function get_options() {
-        global $CFG;
         $options = parent::get_options();
         $options['grupo'] = $this->grupo;
-        $options['file'] = $CFG->admin . '/tool/tutores/lib.php';
+        $options['file'] = 'local/tutores/lib.php';
         return $options;
     }
 
     protected function get_allowed_roles() {
-        global $CFG;
         $papeis = grupos_tutoria::get_papeis_ufsc();
         $allowed_roles = grupos_tutoria::get_papeis_participantes_possiveis();
 
