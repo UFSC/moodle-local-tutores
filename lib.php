@@ -204,7 +204,7 @@ class grupos_tutoria {
     static function get_tutor_responsavel_estudante($curso_ufsc, $matricula_estudante) {
         $middleware = Middleware::singleton();
 
-        $sql = " SELECT DISTINCT u.id, CONCAT(u.firstname,' ',u.lastname) as fullname
+        $sql = " SELECT DISTINCT u.id, u.username, CONCAT(u.firstname,' ',u.lastname) as fullname
                    FROM {user} u
                    JOIN {table_PessoasGruposTutoria} pg
                      ON (pg.matricula=u.username AND pg.tipo=:tipo_tutor)
