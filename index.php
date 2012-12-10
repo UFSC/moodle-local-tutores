@@ -15,7 +15,7 @@ $PAGE->set_title(get_string('pluginname', 'local_tutores'));
 $PAGE->set_heading(get_string('pluginname', 'local_tutores'));
 
 require_login();
-require_capability('tool/tutores:manage', $context);
+require_capability('local/tutores:manage', $context);
 
 $renderer = $PAGE->get_renderer('local_tutores');
 $curso_ufsc = get_curso_ufsc_id($categoryid);

@@ -13,6 +13,19 @@ class local_tutores_renderer extends plugin_renderer_base {
         $this->curso_ativo = get_curso_ufsc_id();
     }
 
+    public function delete_confirmation($return_url, $confirm_url, $grupo) {
+        global $OUTPUT;
+
+        $formcontinue = new single_button($confirm_url, get_string('yes'));
+        $formcancel = new single_button($return_url, get_string('no'), 'get');
+
+        $output = $this->page_header('index');
+        $output .= $OUTPUT->heading(get_string('delete_confirmation', 'local_tutores'));
+        $output .= $OUTPUT->confirm(get_string('confirm_group_deletition', 'local_tutores', $grupo->nome), $formcontinue, $formcancel);
+
+        return $output;
+    }
+
     /**
      * Página inicial
      *

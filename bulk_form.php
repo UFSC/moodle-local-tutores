@@ -48,7 +48,7 @@ class admin_bulk_tutores_confirmation extends moodleform {
         $grupos_tutoria = get_grupos_tutoria_select($curso_ufsc);
 
         $mform->addElement('header', 'bulktutoresheader', get_string('upload'));
-        $mform->addElement('html', $OUTPUT->heading(get_string('confirm_bulk_operation', 'tool_tutores'), 3));
+        $mform->addElement('html', $OUTPUT->heading(get_string('confirm_bulk_operation', 'local_tutores'), 3));
 
         $mform->addElement('select', 'grupotutoria', 'Grupo de Tutoria', $grupos_tutoria);
 

@@ -16,8 +16,9 @@ $PAGE->set_title(get_string('pluginname', 'local_tutores'));
 $PAGE->set_heading(get_string('pluginname', 'local_tutores'));
 
 require_login();
-require_capability('tool/tutores:manage', $context);
+require_capability('local/tutores:manage', $context);
 
+/** @var $renderer local_tutores_renderer */
 $renderer = $PAGE->get_renderer('local_tutores');
 $curso_ufsc = get_curso_ufsc_id();
 
@@ -57,16 +58,22 @@ switch ($action) {
         break;
 
     case 'delete':
-        // TODO: Acrescentar tela de confirmação de remoção
         $id_grupo = required_param('id', PARAM_INT);
+        $confirm = optional_param('confirm', false, PARAM_BOOL);
         $grupo = get_grupo_tutoria($id_grupo);
 
         if (empty($grupo)) {
             echo $renderer->page_header('index');
             print_error('invalid_grupo_tutoria', 'local_tutores');
-        } else {
+        } elseif ($confirm) {
             delete_grupo_tutoria($curso_ufsc, $id_grupo);
             redirect_to_gerenciar_tutores();
+        } else {
+            $return_url = new moodle_url('/local/tutores/index.php', array('categoryid' => $categoryid));
+            $confirm_url = new moodle_url('/local/tutores/groups.php', array('categoryid' => $categoryid,
+                'id' => $id_grupo, 'action' => 'delete', 'confirm' => true));
+
+            echo $renderer->delete_confirmation($return_url, $confirm_url, $grupo);
         }
         break;
 

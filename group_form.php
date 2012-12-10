@@ -11,8 +11,8 @@ class group_form extends moodleform {
 
         $mform = $this->_form;
 
-        $mform->addElement('header', 'grupos_tutoria', get_string('grupos_tutoria', 'tool_tutores'));
-        $mform->addElement('text', 'nome', get_string('nome_grupo', 'tool_tutores'), array('size' => 80));
+        $mform->addElement('header', 'grupos_tutoria', get_string('grupos_tutoria', 'local_tutores'));
+        $mform->addElement('text', 'nome', get_string('nome_grupo', 'local_tutores'), array('size' => 80));
 
         $submit_text = $action == 'add' ? get_string('add') : null;
 
