@@ -2,7 +2,7 @@
 
 define('CLI_SCRIPT', true);
 
-require(__DIR__.'/../../../../config.php');
+require(__DIR__.'/../../../config.php');
 require_once($CFG->libdir.'/clilib.php');
 require_once($CFG->libdir.'/grouplib.php');
 require_once(__DIR__ . '/../locallib.php');
@@ -19,7 +19,7 @@ Options:
 -h, --help            Imprime esta ajuda.
 
 Exemplo:
-\$ sudo -u www-data /usr/bin/php admin/tool/tutores/cli/groupimporter.php
+\$ sudo -u www-data /usr/bin/php local/tutores/cli/groupimporter.php
 ";
 
 // Now get cli options.
@@ -46,7 +46,7 @@ if (empty($CFG->version)) {
     cli_error(get_string('missingconfigversion', 'debug'));
 }
 
-echo "\n".get_string('cliheading', 'tool_tutores')."\n\n";
+echo "\n".get_string('cliheading', 'local_tutores')."\n\n";
 
 if (!isset($options['group'])) {
     cli_error('Informe o ID do grupo que será importado utilizando: "--group=GROUPID"');
