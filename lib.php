@@ -433,11 +433,9 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
         $found_users = array();
         $empty = array(get_string('none') => array(), get_string('pleasesearchmore') => array());
 
-        $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
-        $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
-        $to_query = array('Tutores' => $papeis_tutores, 'Estudantes' => $papeis_estudantes);
+        $to_query = array('Tutores' => GRUPO_TUTORIA_TIPO_TUTOR, 'Estudantes' => GRUPO_TUTORIA_TIPO_ESTUDANTE);
 
-        foreach ($to_query as $categoria => $papeis) {
+        foreach ($to_query as $categoria => $tipo) {
             $sql = " FROM {user} u
                      JOIN {table_PessoasGruposTutoria} pg
                        ON (u.username=pg.matricula)
@@ -446,8 +444,9 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
                     WHERE $wherecondition
                       AND mnethostid = :localmnet
                       AND pg.grupo=:grupo
-                      AND mid_u.papel_principal IN ({$papeis})";
+                      AND pg.tipo=:tipo";
 
+            $params['tipo'] = $tipo;
             $users = $middleware->get_records_sql($fields . $sql . $order, $params);
             if (!empty($users)) {
                 $found_users[$categoria] = $users;
