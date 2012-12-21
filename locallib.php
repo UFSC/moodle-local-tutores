@@ -94,8 +94,6 @@ function get_grupos_tutoria_select($curso_ufsc) {
 
 function get_grupos_tutoria_with_members_count($curso_ufsc) {
     $middleware = Middleware::singleton();
-    $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
-    $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
 
     $sql = "SELECT gt.id as grupo, gt.nome, IFNULL(estudante.quantidade, 0) as estudantes, IFNULL(tutor.quantidade, 0) as tutores
               FROM {table_GruposTutoria} gt
@@ -104,9 +102,7 @@ function get_grupos_tutoria_with_members_count($curso_ufsc) {
                     FROM {table_GruposTutoria} gt
                     JOIN {table_PessoasGruposTutoria} pg
                       ON (gt.id=pg.grupo)
-                    JOIN {view_Usuarios} u
-                      ON (u.username=pg.matricula)
-                   WHERE papel_principal IN ({$papeis_estudantes})
+                   WHERE pg.tipo=:tipo_estudante
                 GROUP BY pg.grupo
                    ) as estudante
                 ON (estudante.grupo=gt.id)
@@ -115,16 +111,15 @@ function get_grupos_tutoria_with_members_count($curso_ufsc) {
                     FROM {table_GruposTutoria} gt
                     JOIN {table_PessoasGruposTutoria} pg
                       ON (gt.id=pg.grupo)
-                    JOIN {view_Usuarios} u
-                      ON (u.username=pg.matricula)
-                   WHERE papel_principal IN ({$papeis_tutores})
+                   WHERE pg.tipo=:tipo_tutor
                 GROUP BY pg.grupo
                   ) as tutor
                ON (tutor.grupo=gt.id)
-            WHERE gt.curso=?
+            WHERE gt.curso=:curso_ufsc
          ORDER BY gt.nome";
 
-    return $middleware->get_records_sql($sql, array($curso_ufsc));
+    $param = array('tipo_estudante' => GRUPO_TUTORIA_TIPO_ESTUDANTE, 'tipo_tutor' => GRUPO_TUTORIA_TIPO_TUTOR, 'curso_ufsc' => $curso_ufsc);
+    return $middleware->get_records_sql($sql, $param);
 }
 
 function get_cursos_ativos_list() {
