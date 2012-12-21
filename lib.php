@@ -11,7 +11,7 @@ define('GRUPO_TUTORIA_TIPO_TUTOR', 'T');
 function local_tutores_extends_settings_navigation(navigation_node $navigation) {
     global $PAGE;
 
-    if (is_a($PAGE->context, 'context_coursecat')) {
+    if (is_a($PAGE->context, 'context_coursecat') && has_capability('local/tutores:manage' ,$PAGE->context)) {
         $category_node = $navigation->get(0);
 
         $grupostutoria_node = $category_node->add(get_string('grupos_tutoria', 'local_tutores'), null, navigation_node::TYPE_CONTAINER);
