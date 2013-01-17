@@ -57,8 +57,8 @@ class Middleware {
     private function __construct() {
         global $CFG;
 
-        // Carrega configurações do enrol_ufsc
-        $config = get_config("enrol_ufsc");
+        // Carrega configurações do local_academico
+        $config = get_config("local_academico");
 
         // Carrega configurações de prefixo do banco de dados do Moodle
         $moodle_prefix = empty($CFG->prefix) ? $CFG->dbname : "{$CFG->dbname}.{$CFG->prefix}";
