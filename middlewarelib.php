@@ -387,3 +387,18 @@ class Middleware {
     }
 
 }
+
+/**
+ * Classe com funcionalidades auxiliares que são comuns a vários projetos, e sejam relacionados a consultas com o Middleware
+ */
+class MiddlewareUtil {
+
+    /**
+     * Retorna os cursos UFSC ativos neste contexto
+     * @return array
+     */
+    static function get_cursos_ufsc() {
+        $middleware = Middleware::singleton();
+        return $middleware->get_records_sql_menu("SELECT cursos.curso, cursos.nome FROM {View_Cursos_Ativos} cursos");
+    }
+}

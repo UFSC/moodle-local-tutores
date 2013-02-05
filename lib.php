@@ -95,7 +95,7 @@ class grupos_tutoria {
      * Retorna lista de estudantes inscritos em algum grupo de tutoria de um determinado curso ufsc.
      *
      * @param string $curso_ufsc
-     * @return mixed
+     * @return array [userid => fullname]
      */
     static function get_estudantes_curso_ufsc($curso_ufsc) {
         $middleware = Middleware::singleton();
