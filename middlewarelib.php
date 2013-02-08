@@ -399,6 +399,10 @@ class MiddlewareUtil {
      */
     static function get_cursos_ufsc() {
         $middleware = Middleware::singleton();
+
+        if (!$middleware->configured())
+            return false;
+
         return $middleware->get_records_sql_menu("SELECT cursos.curso, cursos.nome FROM {View_Cursos_Ativos} cursos");
     }
 }
