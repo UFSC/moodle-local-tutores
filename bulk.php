@@ -1,34 +1,50 @@
 <?php
 
+/**
+ * Cadastro de pessoas em grupos de tutoria (em lote)
+ *
+ * O cadastro em lote funciona a partir do envio de um arquivo .csv utilizando a seguinte formatação:
+ *
+ * - Primeira linha: deve conter os nomes dos campos:
+ * -- username
+ * -- tipo
+ * - Segunda e demais linhas:
+ * -- os respectivos dados para usuário e tipo
+ * -- Os tipos que são reconhecidos como válidos são: 'E', 'Estudante', 'T', 'Tutor'
+ */
+
 require_once('../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
 require_once($CFG->libdir.'/csvlib.class.php');
 require_once('locallib.php');
 require_once('bulk_form.php');
 
-$iid         = optional_param('iid', '', PARAM_INT);
-$previewrows = optional_param('previewrows', 10, PARAM_INT);
-
 // aumenta limites de timeout e memória
 @set_time_limit(60*60); // 1 hour should be enough
 raise_memory_limit(MEMORY_HUGE);
 
+$iid         = optional_param('iid', '', PARAM_INT);
+$previewrows = optional_param('previewrows', 10, PARAM_INT);
+$categoryid = required_param('categoryid', PARAM_INT);
+$context = context_coursecat::instance($categoryid);
+
+$base_url = new moodle_url('/local/tutores/bulk.php', array('categoryid' => $categoryid));
+$backto_url = new moodle_url('/local/tutores/index.php', array('categoryid' => $categoryid));
+
+global $PAGE;
+$PAGE->set_url($base_url);
+$PAGE->set_context($context);
+$PAGE->set_pagelayout('standard');
+$PAGE->set_title(get_string('pluginname', 'local_tutores'));
+$PAGE->set_heading(get_string('pluginname', 'local_tutores'));
+
 // login e permissões
 require_login();
-print_error("Desabilitado");
-die();
-admin_externalpage_setup('tooltutoresbulk');
+require_capability('local/tutores:manage', $context);
 
-/** @var $renderer tool_tutores_renderer */
-$renderer = $PAGE->get_renderer('tool_tutores');
+/** @var local_tutores_renderer $renderer */
+$renderer = $PAGE->get_renderer('local_tutores');
 $curso_ufsc = get_curso_ufsc_id();
-$base_url = new moodle_url('/admin/tool/tutores/bulk.php', array('curso_ufsc' => $curso_ufsc));
-
-// Exibe o seletor de cursos caso não exista um curso informado em $curso_ufsc
-if (empty($curso_ufsc)) {
-    echo $renderer->choose_curso_ufsc_page('/admin/tool/tutores/bulk.php');
-    die();
-}
 
 if (empty($iid)) {
 
@@ -87,16 +103,16 @@ if ($formdata = $mform2->is_cancelled()) {
     if (empty($grupotutoria))
         print_error('invalid_grupo_tutoria', 'tool_tutores', $base_url);
 
+    $columns = array_flip($filecolumns);
+
     $failed = array();
     while ($line = $cir->next()) {
         $linenum++;
-        $username = $line[0];
+        $username = $line[$columns['username']];
+        $tipo = $line[$columns['tipo']];
 
-        if (in_array($papel, $papeis_estudantes)) {
-            $tipo = GRUPO_TUTORIA_TIPO_ESTUDANTE;
-        } else if (in_array($papel, $papeis_tutores)) {
-            $tipo = GRUPO_TUTORIA_TIPO_TUTOR;
-        }
+        // Hack: Trocar 'Estudante' -> E, e 'Tutor' -> 'T'
+        $tipo = str_replace(array('Estudante', 'Tutor'), array(GRUPO_TUTORIA_TIPO_ESTUDANTE, GRUPO_TUTORIA_TIPO_TUTOR), $tipo);
 
         if (!add_member_grupo_tutoria($grupotutoria->id, $username, $tipo)) {
             $failed[] = array($linenum, $username);

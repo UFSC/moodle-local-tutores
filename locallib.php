@@ -214,12 +214,12 @@ function update_grupo_tutoria($curso_ufsc, $grupo, $nome) {
 /**
  * Realiza a validação das colunas informadas no CSV de importação em lote de participantes
  *
- * @param $cir
- * @param $STD_FIELDS
- * @param $base_url
- * @return array
+ * @param csv_import_reader $cir
+ * @param moodle_url $returnurl return url in case of any error
+ * @return array list of fields
  */
 function validate_upload_grupos_tutoria($cir, $returnurl) {
+    $stdfields = array('username', 'tipo');
     $columns = $cir->get_columns();
 
     if (empty($columns)) {
@@ -228,12 +228,33 @@ function validate_upload_grupos_tutoria($cir, $returnurl) {
         print_error('cannotreadtmpfile', 'error', $returnurl);
     }
 
-    foreach ($columns as $key=>$field) {
-        if ($key != 'username') {
+    if (count($columns) < 2) {
+        $cir->close();
+        $cir->cleanup();
+        print_error('csvfewcolumns', 'error', $returnurl);
+    }
+
+    // test columns
+    $processed = array();
+    foreach ($columns as $key=>$unused) {
+        $field = $columns[$key];
+        $lcfield = textlib::strtolower($field);
+        if (in_array($field, $stdfields) or in_array($lcfield, $stdfields)) {
+            // standard fields are only lowercase
+            $newfield = $lcfield;
+
+        } else {
             $cir->close();
             $cir->cleanup();
             print_error('invalidfieldname', 'error', $returnurl, $field);
         }
+
+        if (in_array($newfield, $processed)) {
+            $cir->close();
+            $cir->cleanup();
+            print_error('duplicatefieldname', 'error', $returnurl, $newfield);
+        }
+        $processed[$key] = $newfield;
     }
 
     return $columns;

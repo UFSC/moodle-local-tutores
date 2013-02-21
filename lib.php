@@ -16,7 +16,7 @@ function local_tutores_extends_settings_navigation(navigation_node $navigation) 
 
         $grupostutoria_node = $category_node->add(get_string('grupos_tutoria', 'local_tutores'), null, navigation_node::TYPE_CONTAINER);
         $grupostutoria_node->add(get_string('manage_groups', 'local_tutores'), new moodle_url('/local/tutores/index.php', array('categoryid' => $PAGE->context->instanceid)));
-        //$grupostutoria_node->add(get_string('bulk_upload_groups', 'local_tutores'), new moodle_url('/local/tutores/bulk.php', array('categoryid' => $PAGE->context->instanceid)));
+        $grupostutoria_node->add(get_string('bulk_upload_groups', 'local_tutores'), new moodle_url('/local/tutores/bulk.php', array('categoryid' => $PAGE->context->instanceid)));
     }
 }
 
