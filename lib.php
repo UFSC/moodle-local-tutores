@@ -14,9 +14,11 @@ function local_tutores_extends_settings_navigation(navigation_node $navigation) 
     if (is_a($PAGE->context, 'context_coursecat') && has_capability('local/tutores:manage' ,$PAGE->context)) {
         $category_node = $navigation->get(0);
 
-        $grupostutoria_node = $category_node->add(get_string('grupos_tutoria', 'local_tutores'), null, navigation_node::TYPE_CONTAINER);
-        $grupostutoria_node->add(get_string('manage_groups', 'local_tutores'), new moodle_url('/local/tutores/index.php', array('categoryid' => $PAGE->context->instanceid)));
-        $grupostutoria_node->add(get_string('bulk_upload_groups', 'local_tutores'), new moodle_url('/local/tutores/bulk.php', array('categoryid' => $PAGE->context->instanceid)));
+        if ($category_node) {
+            $grupostutoria_node = $category_node->add(get_string('grupos_tutoria', 'local_tutores'), null, navigation_node::TYPE_CONTAINER);
+            $grupostutoria_node->add(get_string('manage_groups', 'local_tutores'), new moodle_url('/local/tutores/index.php', array('categoryid' => $PAGE->context->instanceid)));
+            $grupostutoria_node->add(get_string('bulk_upload_groups', 'local_tutores'), new moodle_url('/local/tutores/bulk.php', array('categoryid' => $PAGE->context->instanceid)));
+        }
     }
 }
 
