@@ -229,7 +229,7 @@ class Middleware {
         $externaldb = ADONewConnection($CFG->dbtype);
 
         // Considerando os dados de conexão do config.php e apenas alterando o dbname pelas configurações do plugin.
-        $externaldb->PConnect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass, $config->dbname, true);
+        $externaldb->Connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass, $config->dbname, true);
         $externaldb->SetFetchMode(ADODB_FETCH_ASSOC);
         $externaldb->SetCharSet('utf8');
 
