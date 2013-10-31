@@ -37,9 +37,8 @@ class grupos_tutoria {
         if (!$middleware->configured())
             return false;
 
-        $sql = "SELECT p.* FROM {View_Usuarios} u
-                  JOIN {table_Papeis} p ON(u.papel_principal = p.papel)
-              GROUP BY papel_principal";
+        $sql = "SELECT p.papel, p.descricao
+                  FROM {view_Papeis} p";
 
         try {
             return $middleware->get_records_sql_menu($sql);
@@ -287,15 +286,18 @@ class grupos_tutoria {
 abstract class tutor_selector_base extends user_selector_base {
 
     protected $grupo;
+    protected $curso;
 
     public function __construct($name, $options) {
         $this->grupo = $options['grupo'];
+        $this->curso = $options['curso'];
         parent::__construct($name, $options);
     }
 
     protected function get_options() {
         $options = parent::get_options();
         $options['grupo'] = $this->grupo;
+        $options['curso'] = $this->curso;
         $options['file'] = 'local/tutores/lib.php';
         return $options;
     }
@@ -331,23 +333,38 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
 
         $allowed_roles_sql = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_participantes_possiveis());
 
+        $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
+        $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
+
+        $tutores = (object) array('tipo' => GRUPO_TUTORIA_TIPO_TUTOR, 'nome' => 'Tutores', 'papeis' => $papeis_tutores);
+        $estudantes = (object) array('tipo' => GRUPO_TUTORIA_TIPO_ESTUDANTE, 'nome' => 'Estudantes', 'papeis' => $papeis_estudantes);
+
+        $categorias = array($tutores, $estudantes);
+
         list($wherecondition, $params) = $this->search_sql($search, 'u');
 
-        $fields = 'SELECT ' . $this->required_fields_sql('u');
-        $countfields = 'SELECT COUNT(1)';
+        $fields = 'SELECT DISTINCT ' . $this->required_fields_sql('u');
+        $countfields = 'SELECT COUNT(DISTINCT username)';
 
         $sql = " FROM {user} u
-                 JOIN {View_Usuarios} mid_u
+                 JOIN {View_UsuariosFuncoesCursos} mid_u
                 USING (username)
                 WHERE $wherecondition
                   AND mnethostid = :localmnet
-                  AND mid_u.papel_principal IN ({$allowed_roles_sql})
-                  AND u.username NOT IN (SELECT matricula FROM {table_PessoasGruposTutoria})";
+                  AND mid_u.curso = :curso1
+                  AND mid_u.papel IN ({$allowed_roles_sql})
+                  AND u.username NOT IN (SELECT pg.matricula
+                                          FROM {table_PessoasGruposTutoria} pg
+                                          JOIN {table_GruposTutoria} gt ON (gt.id = pg.grupo)
+                                         WHERE gt.curso = :curso2)";
 
         $order = ' ORDER BY lastname ASC, firstname ASC';
 
         $params['localmnet'] = $CFG->mnet_localhost_id; // it could be dangerous to make remote users admins and also this could lead to other problems
+        $params['curso1'] = $this->curso;
+        $params['curso2'] = $this->curso;
         // Check to see if there are too many to show sensibly.
+
         if (!$this->is_validating()) {
             $potentialcount = $middleware->count_records_sql($countfields . $sql, $params);
             if ($potentialcount > 100) {
@@ -358,23 +375,19 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
         $found_users = array();
         $empty = array(get_string('none') => array(), get_string('pleasesearchmore') => array());
 
-        $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
-        $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
-
-        $tutores = (object) array('tipo' => GRUPO_TUTORIA_TIPO_TUTOR, 'nome' => 'Tutores', 'papeis' => $papeis_tutores);
-        $estudantes = (object) array('tipo' => GRUPO_TUTORIA_TIPO_ESTUDANTE, 'nome' => 'Estudantes', 'papeis' => $papeis_estudantes);
-
-        $categorias = array($tutores, $estudantes);
-
         foreach ($categorias as $categoria) {
 
             $sql = " FROM {user} u
-                     JOIN {View_Usuarios} mid_u
+                     JOIN {View_UsuariosFuncoesCursos} mid_u
                     USING (username)
                     WHERE $wherecondition
                       AND mnethostid = :localmnet
-                      AND mid_u.papel_principal IN ({$categoria->papeis})
-                      AND u.username NOT IN (SELECT matricula FROM {table_PessoasGruposTutoria})";
+                      AND mid_u.curso = :curso1
+                      AND mid_u.papel IN ({$categoria->papeis})
+                      AND u.username NOT IN (SELECT matricula
+                                              FROM {table_PessoasGruposTutoria} pg
+                                              JOIN {table_GruposTutoria} gt ON (gt.id = pg.grupo)
+                                             WHERE gt.curso = :curso2)";
 
             $users = $middleware->get_records_sql($fields . $sql . $order, $params);
             if (!empty($users)) {

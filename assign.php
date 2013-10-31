@@ -27,7 +27,7 @@ $curso_ufsc = get_curso_ufsc_id();
 $grupo_tutoria = get_grupo_tutoria($groupid);
 
 // Opções passadas ao seletor de usuários
-$options = array('grupo' => $groupid);
+$options = array('grupo' => $groupid, 'curso' => $curso_ufsc);
 
 // Select de usuários
 $membersselector = new usuarios_tutoria_existing_selector('existingmembersgrupotutoria', $options);
