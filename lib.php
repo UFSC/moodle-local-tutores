@@ -126,7 +126,8 @@ class grupos_tutoria {
             $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso_ufsc ORDER BY nome";
         else{
             $tutores = int_array_to_sql($tutores);
-            $sql = "SELECT gt.id, gt.curso, gt.nome FROM {table_GruposTutoria} gt
+            $sql = "SELECT gt.id, gt.curso, gt.nome
+                      FROM {table_GruposTutoria} gt
                       JOIN {table_PessoasGruposTutoria} pg
                         ON (gt.id=pg.grupo AND gt.curso=:curso_ufsc)
                       JOIN {user} u
@@ -331,67 +332,65 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
 
         $middleware = Middleware::singleton();
 
-        $allowed_roles_sql = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_participantes_possiveis());
-
-        $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
-        $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
-
-        $tutores = (object) array('tipo' => GRUPO_TUTORIA_TIPO_TUTOR, 'nome' => 'Tutores', 'papeis' => $papeis_tutores);
-        $estudantes = (object) array('tipo' => GRUPO_TUTORIA_TIPO_ESTUDANTE, 'nome' => 'Estudantes', 'papeis' => $papeis_estudantes);
-
-        $categorias = array($tutores, $estudantes);
-
         list($wherecondition, $params) = $this->search_sql($search, 'u');
 
-        $fields = 'SELECT DISTINCT ' . $this->required_fields_sql('u');
-        $countfields = 'SELECT COUNT(DISTINCT username)';
-
-        $sql = " FROM {user} u
-                 JOIN {View_UsuariosFuncoesCursos} mid_u
-                USING (username)
-                WHERE $wherecondition
-                  AND mnethostid = :localmnet
-                  AND mid_u.curso = :curso1
-                  AND mid_u.papel IN ({$allowed_roles_sql})
-                  AND u.username NOT IN (SELECT pg.matricula
-                                          FROM {table_PessoasGruposTutoria} pg
-                                          JOIN {table_GruposTutoria} gt ON (gt.id = pg.grupo)
-                                         WHERE gt.curso = :curso2)";
-
-        $order = ' ORDER BY lastname ASC, firstname ASC';
+        $sql = "FROM {user} u
+                JOIN {view_UsuariosFuncoesCursos} ufc USING (username)
+                LEFT JOIN (SELECT pg.matricula, pg.grupo, pg.tipo
+                             FROM {table_GruposTutoria} gt
+                             JOIN {table_PessoasGruposTutoria} pg ON (pg.grupo = gt.id)
+                            WHERE gt.curso = :curso1
+                            GROUP BY pg.matricula
+                          ) par
+                  ON (par.matricula = u.username)
+               WHERE {$wherecondition}
+                 AND ufc.curso = :curso2
+                 AND u.username NOT IN (SELECT matricula FROM {table_PessoasGruposTutoria} WHERE grupo = :grupo)
+                 AND (ISNULL(par.matricula) OR par.tipo = :tipo)";
 
         $params['localmnet'] = $CFG->mnet_localhost_id; // it could be dangerous to make remote users admins and also this could lead to other problems
         $params['curso1'] = $this->curso;
         $params['curso2'] = $this->curso;
-        // Check to see if there are too many to show sensibly.
+        $params['tipo'] = GRUPO_TUTORIA_TIPO_TUTOR;
+        $params['grupo'] = $this->grupo;
 
+        // Check to see if there are too many to show sensibly.
         if (!$this->is_validating()) {
-            $potentialcount = $middleware->count_records_sql($countfields . $sql, $params);
+            $allowed_roles_sql = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_participantes_possiveis());
+            $countfields = 'SELECT COUNT(u.username) ';
+            $sql_count = $countfields . $sql . " AND ufc.papel IN ({$allowed_roles_sql}) ";
+
+            $potentialcount = $middleware->count_records_sql($sql_count, $params);
             if ($potentialcount > 100) {
                 return $this->too_many_results($search, $potentialcount);
             }
         }
 
+        $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
+        $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
+        $tutores_nao_alocados = (object) array('tipo' => GRUPO_TUTORIA_TIPO_TUTOR,
+                                           'nome' => 'Tutores ainda não alocados',
+                                           'papeis' => $papeis_tutores,
+                                           'condicao' => 'ISNULL(par.grupo)');
+        $tutores_alocados = (object) array('tipo' => GRUPO_TUTORIA_TIPO_TUTOR,
+                                           'nome' => 'Tutores já alocados em outros grupos',
+                                           'papeis' => $papeis_tutores,
+                                           'condicao' => 'NOT ISNULL(par.grupo)');
+        $estudantes = (object) array('tipo' => GRUPO_TUTORIA_TIPO_ESTUDANTE,
+                                     'nome' => 'Estudantes',
+                                     'papeis' => $papeis_estudantes,
+                                     'condicao' => '');
+        $categorias = array($tutores_nao_alocados, $tutores_alocados, $estudantes);
+
+        $fields = 'SELECT ' . $this->required_fields_sql('u') . ', par.grupo ';
+        $order = ' ORDER BY u.firstname, u.lastname';
+
         $found_users = array();
-        $empty = array(get_string('none') => array(), get_string('pleasesearchmore') => array());
-
         foreach ($categorias as $categoria) {
-
-            $sql = " FROM {user} u
-                     JOIN {View_UsuariosFuncoesCursos} mid_u
-                    USING (username)
-                    WHERE $wherecondition
-                      AND mnethostid = :localmnet
-                      AND mid_u.curso = :curso1
-                      AND mid_u.papel IN ({$categoria->papeis})
-                      AND u.username NOT IN (SELECT matricula
-                                              FROM {table_PessoasGruposTutoria} pg
-                                              JOIN {table_GruposTutoria} gt ON (gt.id = pg.grupo)
-                                             WHERE gt.curso = :curso2)";
-
-            $users = $middleware->get_records_sql($fields . $sql . $order, $params);
+            $condicao = empty($categoria->condicao) ? '' : ' AND ' . $categoria->condicao;
+            $sql_cat = $fields . $sql . " AND ufc.papel IN ({$categoria->papeis}) " . $condicao . $order;
+            $users = $middleware->get_records_sql($sql_cat, $params);
             if (!empty($users)) {
-
                 // Acrescentar o tipo para facilitar a inclusão
                 foreach ($users as $user) {
                     $user->tipo = $categoria->tipo;
@@ -400,6 +399,7 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
             }
         }
 
+        $empty = array(get_string('none') => array(), get_string('pleasesearchmore') => array());
         return empty($found_users) ? $empty : $found_users;
     }
 
@@ -433,7 +433,7 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
                   AND pg.grupo=:grupo
                  ";
 
-        $order = ' ORDER BY lastname ASC, firstname ASC';
+        $order = ' ORDER BY firstname ASC, lastname ASC';
 
         $params['localmnet'] = $CFG->mnet_localhost_id; // it could be dangerous to make remote users admins and also this could lead to other problems
         $params['grupo'] = $this->grupo;
@@ -448,8 +448,6 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
         }
 
         $found_users = array();
-        $empty = array(get_string('none') => array(), get_string('pleasesearchmore') => array());
-
         $to_query = array('Tutores' => GRUPO_TUTORIA_TIPO_TUTOR, 'Estudantes' => GRUPO_TUTORIA_TIPO_ESTUDANTE);
 
         foreach ($to_query as $categoria => $tipo) {
@@ -470,6 +468,7 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
             }
         }
 
+        $empty = array(get_string('none') => array(), get_string('pleasesearchmore') => array());
         return empty($found_users) ? $empty : $found_users;
     }
 
