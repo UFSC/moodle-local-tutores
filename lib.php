@@ -15,8 +15,8 @@ function local_tutores_extends_settings_navigation(navigation_node $navigation) 
     if (is_a($PAGE->context, 'context_coursecat') && has_capability('local/tutores:manage' ,$PAGE->context)) {
         $category_node = $navigation->get('categorysettings');
 
-        // Se por algum motivo a chave for alterada em uma nova vers\u00e3o do Moodle,
-        // N\u00e3o quebrar o c\u00f3digo.
+        // Se por algum motivo a chave for alterada em uma nova versão do Moodle,
+        // Não quebrar o código.
         if ($category_node) {
             $grupostutoria_node = $category_node->add(get_string('grupos_tutoria', 'local_tutores'), null, navigation_node::TYPE_CONTAINER);
             $grupostutoria_node->add(get_string('manage_groups', 'local_tutores'), new moodle_url('/local/tutores/index.php', array('categoryid' => $PAGE->context->instanceid)));
@@ -28,9 +28,9 @@ function local_tutores_extends_settings_navigation(navigation_node $navigation) 
 class grupos_tutoria {
 
     /**
-     * Retorna os pap\u00e9is atribu\u00eddos no middleware a pelo menos uma pessoa deste contexto UFSC
+     * Retorna os papéis atribuídos no middleware a pelo menos uma pessoa deste contexto UFSC
      *
-     * @return array pap\u00e9is dispon\u00edveis para sele\u00e7\u00e3o
+     * @return array papéis disponíveis para seleção
      */
     static function get_papeis_ufsc() {
         $middleware = Middleware::singleton();
@@ -49,7 +49,7 @@ class grupos_tutoria {
     }
 
     /**
-     * Retorna os pap\u00e9is que est\u00e3o sendo considerados como estudantes
+     * Retorna os papéis que estão sendo considerados como estudantes
      *
      * @static
      * @return array
@@ -61,7 +61,7 @@ class grupos_tutoria {
     }
 
     /**
-     * Retorna os pap\u00e9is que est\u00e3o sendo considerados como tutores
+     * Retorna os papéis que estão sendo considerados como tutores
      *
      * @static
      * @return array
@@ -73,7 +73,7 @@ class grupos_tutoria {
     }
 
     /**
-     * Retorna os pap\u00e9is que est\u00e3o sendo considerados como coordenadores
+     * Retorna os papéis que estão sendo considerados como coordenadores
      *
      * @static
      * @return array
@@ -85,7 +85,7 @@ class grupos_tutoria {
     }
 
     /**
-     * Retorna lista de todos os pap\u00e9is que s\u00e3o considerados ou tutor ou estudante
+     * Retorna lista de todos os papéis que são considerados ou tutor ou estudante
      *
      * @static
      * @return array
@@ -218,7 +218,7 @@ class grupos_tutoria {
     }
 
     /**
-     * Retorna o tutor respons\u00e1vel em um curso_ufsc por um estudante
+     * Retorna o tutor responsável em um curso_ufsc por um estudante
      *
      * @param string $curso_ufsc
      * @param string $matricula_estudante
@@ -253,13 +253,13 @@ class grupos_tutoria {
     /**
      * Coloca aspas em uma listagem de papeis para o MySQL.
      *
-     * Este m\u00e9todo tenta corrigir uma defici\u00eancia do Moodle, que n\u00e3o aceita um array
-     * como par\u00e2metro para uma prepared query portanto estamos emulando a coloca\u00e7\u00e3o das aspas
+     * Este método tenta corrigir uma deficiência do Moodle, que não aceita um array
+     * como parâmetro para uma prepared query portanto estamos emulando a colocação das aspas
      * para clausula IN
      *
      * @static
-     * @param $papeis array Listagem de pap\u00e9is em um array simples ([$i => $codigo_papel])
-     * @return string Listagem de pap\u00e9is, separados por v\u00edrgula e com aspas entre eles.
+     * @param $papeis array Listagem de papéis em um array simples ([$i => $codigo_papel])
+     * @return string Listagem de papéis, separados por vírgula e com aspas entre eles.
      */
     static function escape_papeis_sql($papeis) {
         $allowed_roles = $papeis;
@@ -401,11 +401,11 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
         $papeis_tutores = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_tutores());
         $papeis_estudantes = grupos_tutoria::escape_papeis_sql(grupos_tutoria::get_papeis_estudantes());
         $tutores_nao_alocados = (object) array('tipo' => GRUPO_TUTORIA_TIPO_TUTOR,
-            'nome' => 'Tutores ainda n\u00e3o alocados',
+            'nome' => 'Tutores ainda não alocados',
             'papeis' => $papeis_tutores,
             'condicao' => 'ISNULL(par.grupo)');
         $tutores_alocados = (object) array('tipo' => GRUPO_TUTORIA_TIPO_TUTOR,
-            'nome' => 'Tutores j\u00e1 alocados em outros grupos',
+            'nome' => 'Tutores já alocados em outros grupos',
             'papeis' => $papeis_tutores,
             'condicao' => 'NOT ISNULL(par.grupo)');
         $estudantes = (object) array('tipo' => GRUPO_TUTORIA_TIPO_ESTUDANTE,
@@ -423,7 +423,7 @@ class usuarios_tutoria_potential_selector extends tutor_selector_base {
             $sql_cat = $fields . $sql . " AND ufc.papel IN ({$categoria->papeis}) " . $condicao . $order;
             $users = $middleware->get_records_sql($sql_cat, $params);
             if (!empty($users)) {
-                // Acrescentar o tipo para facilitar a inclus\u00e3o
+                // Acrescentar o tipo para facilitar a inclusão
                 foreach ($users as $user) {
                     $user->tipo = $categoria->tipo;
                 }
