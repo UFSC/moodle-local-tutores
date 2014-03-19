@@ -258,8 +258,11 @@ class Middleware {
 
     /**
      * Normalizes sql query parameters and verifies parameters.
+     *
      * @param string $sql The query or part of it.
      * @param array $params The query parameters.
+     * @throws coding_exception
+     * @throws dml_exception
      * @return array (sql, params, type of params)
      */
     public function fix_sql_params($sql, array $params=null) {

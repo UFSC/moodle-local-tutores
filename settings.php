@@ -3,7 +3,7 @@
 defined('MOODLE_INTERNAL') || die;
 
 if ($hassiteconfig) {
-    require_once("{$CFG->dirroot}/local/tutores/lib.php");
+    require_once($CFG->dirroot . '/local/tutores/lib.php');
 
     $papeis = grupos_tutoria::get_papeis_ufsc();
 

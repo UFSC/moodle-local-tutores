@@ -8,4 +8,3 @@ $plugin->component = 'local_tutores'; // Full name of the plugin (used for diagn
 $plugin->dependencies = array('local_academico' => 2012081700);
 
 $plugin->maturity  = MATURITY_BETA; // this version's maturity level
-?>

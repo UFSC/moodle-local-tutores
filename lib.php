@@ -2,8 +2,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once("{$CFG->dirroot}/{$CFG->admin}/roles/lib.php");
-require_once("{$CFG->dirroot}/local/tutores/middlewarelib.php");
+require_once($CFG->dirroot . '/user/selector/lib.php');
+require_once($CFG->dirroot . '/local/tutores/middlewarelib.php');
 
 define('GRUPO_TUTORIA_TIPO_ESTUDANTE', 'E');
 define('GRUPO_TUTORIA_TIPO_TUTOR', 'T');
@@ -117,15 +117,17 @@ class grupos_tutoria {
 
     /**
      * Retorna lista de grupos de tutoria de um determinado curso ufsc
+     *
      * @param string $curso_ufsc
+     * @param array $tutores
      * @return array
      */
     static function get_grupos_tutoria($curso_ufsc, $tutores = null) {
         $middleware = Middleware::singleton();
-        $sql;
-        if(is_null($tutores))
+
+        if (is_null($tutores))
             $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso_ufsc ORDER BY nome";
-        else{
+        else {
             $tutores = int_array_to_sql($tutores);
             $sql = "SELECT gt.id, gt.curso, gt.nome
                       FROM {table_GruposTutoria} gt
@@ -140,20 +142,23 @@ class grupos_tutoria {
 
     /**
      * Retorna lista orientadores de um determinado curso ufsc
+     * FIXME: orientadores não estão sendo usados na filtragem
+     *
      * @param string $curso_ufsc
+     * @param null $orientadores
      * @return array
      */
     static function get_grupos_orientacao($curso_ufsc, $orientadores = null) {
         $middleware = Middleware::singleton();
+
         $sql = "SELECT DISTINCT u.id, ao.username_orientador, u.firstname
-                      FROM {view_Alunos_Orientadores} ao
-                      JOIN {user} u
-                        ON (ao.username_orientador=u.username)
-                  ORDER BY u.firstname
+                  FROM {view_Alunos_Orientadores} ao
+                  JOIN {user} u
+                    ON (ao.username_orientador=u.username)
+              ORDER BY u.firstname
                 ";
         return $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_ORIENTACAO_TIPO_ORIENTADOR));
     }
-
 
 
     /**
@@ -448,7 +453,7 @@ class usuarios_tutoria_existing_selector extends tutor_selector_base {
     }
 
     public function find_users($search) {
-        global $CFG, $DB;
+        global $CFG;
 
         $middleware = Middleware::singleton();
 

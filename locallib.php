@@ -3,14 +3,17 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/moodlelib.php');
-require_once("{$CFG->dirroot}/local/tutores/middlewarelib.php");
-require_once("{$CFG->dirroot}/local/tutores/lib.php");
+require_once($CFG->libdir . '/coursecatlib.php');
+require_once($CFG->dirroot . '/local/tutores/middlewarelib.php');
+require_once($CFG->dirroot . '/local/tutores/lib.php');
 
 /**
  * Adiciona uma pessoa a um grupo de tutoria
  *
  * @param int $grupo id do grupo de tutoria
  * @param string $matricula código de matrícula do participante
+ * @param $tipo 'E' ou 'T'
+ * @throws Exception
  * @return bool true caso o membro seja adicionado e false caso ocorra um problema
  */
 function add_member_grupo_tutoria($grupo, $matricula, $tipo) {
@@ -133,7 +136,7 @@ function get_cursos_ativos_list() {
 
 function get_curso_ufsc_id() {
     $categoryid = required_param('categoryid', PARAM_INT);
-    $category = get_course_category($categoryid);
+    $category = coursecat::get($categoryid);
 
     if (!$category->idnumber) {
         return false;
@@ -238,7 +241,7 @@ function validate_upload_grupos_tutoria($cir, $returnurl) {
     $processed = array();
     foreach ($columns as $key=>$unused) {
         $field = $columns[$key];
-        $lcfield = textlib::strtolower($field);
+        $lcfield = core_text::strtolower($field);
         if (in_array($field, $stdfields) or in_array($lcfield, $stdfields)) {
             // standard fields are only lowercase
             $newfield = $lcfield;
