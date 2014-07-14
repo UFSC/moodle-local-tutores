@@ -154,7 +154,7 @@ function get_curso_ufsc_id() {
 function get_members_grupo_tutoria($grupo) {
     $middleware = Middleware::singleton();
 
-    $sql = "SELECT u.*
+    $sql = "SELECT u.*, pg.tipo as grupo_tutoria_tipo
               FROM {user} u
               JOIN {table_PessoasGruposTutoria} pg
                 ON (u.username=pg.matricula)
