@@ -21,8 +21,15 @@ $renderer = $PAGE->get_renderer('local_tutores');
 $curso_ufsc = get_curso_ufsc_id($categoryid);
 
 if (empty($curso_ufsc)) {
-    echo $renderer->choose_curso_ufsc_page('/local/tutores/index.php');
+    error('Não é possível habilitar o Grupo de Tutoria neste curso');
 } else {
-    $grupos = get_grupos_tutoria_with_members_count($curso_ufsc);
-    echo $renderer->list_groups_page($grupos);
+    $category = get_category_context_from_curso_ufsc($curso_ufsc);
+    $relationship = local_tutores_cli_get_relationship_tutoria($category->id);
+
+    if (!$relationship) {
+        //echo $renderer->create_confirmation($base_url, $base_url, $curso_ufsc);
+        error('Não existe um Grupo de Tutoria habilitado para este curso');
+    } else {
+        redirect(new moodle_url('/local/relationship/groups.php', array('relationshipid' => $relationship->id)));
+    }
 }

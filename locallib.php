@@ -7,131 +7,11 @@ require_once($CFG->libdir . '/coursecatlib.php');
 require_once($CFG->dirroot . '/local/tutores/middlewarelib.php');
 require_once($CFG->dirroot . '/local/tutores/lib.php');
 
-/**
- * Adiciona uma pessoa a um grupo de tutoria
- *
- * @param int $grupo id do grupo de tutoria
- * @param string $matricula código de matrícula do participante
- * @param $tipo 'E' ou 'T'
- * @throws Exception
- * @return bool true caso o membro seja adicionado e false caso ocorra um problema
- */
-function add_member_grupo_tutoria($grupo, $matricula, $tipo) {
-
-    $tipos_validos = array('E', 'T');
-    if (!in_array($tipo, $tipos_validos)) {
-        throw new Exception('tipo inválido informado');
-    }
-
-    $middleware = Middleware::singleton();
-
-    $sql = "INSERT INTO {table_PessoasGruposTutoria}
-                        (grupo, matricula, tipo)
-                 VALUES (:grupo, :matricula, :tipo)";
-
-    $params = array('grupo' => $grupo, 'matricula' => $matricula, 'tipo' => $tipo);
-
-    return (bool) $middleware->insert_record_sql($sql, $params);
-}
-
-/**
- * Cria um grupo de tutoria
- *
- * @param string $curso_ufsc
- * @param string $nome
- * @return int|bool retorna o código do grupo de tutoria ou false caso ocorra um problema
- */
-function create_grupo_tutoria($curso_ufsc, $nome) {
-    $middleware = Middleware::singleton();
-    $sql = "INSERT INTO {table_GruposTutoria} (nome, curso) VALUES(:nome, :curso)";
-    $params = array('nome' => $nome, 'curso' => $curso_ufsc);
-
-    return $middleware->insert_record_sql($sql, $params);
-}
-
-/**
- * @param string $curso_ufsc
- * @param int $grupo
- * @return ADORecordSet|bool
- */
-function delete_grupo_tutoria($curso_ufsc, $grupo) {
-    $middleware = Middleware::singleton();
-
-    $sql = "DELETE FROM {table_PessoasGruposTutoria}
-                  WHERE grupo=:grupo";
-
-    $result = $middleware->execute($sql, array('grupo' => $grupo));
-
-    $sql = "DELETE FROM {table_GruposTutoria}
-             WHERE curso=:curso AND id=:grupo";
-
-    $result2 = $middleware->execute($sql, array('curso' => $curso_ufsc, 'grupo' => $grupo));
-
-    return ($result && $result2);
-}
-
-function get_action_icon($url, $icon, $alt, $tooltip) {
-    global $OUTPUT;
-    return '<a title="' . $tooltip . '" href="' . $url . '">' .
-            '<img src="' . $OUTPUT->pix_url('t/' . $icon) . '" class="iconsmall" alt="' . $alt . '" /></a> ';
-}
-
 function get_category_context_from_curso_ufsc($curso_ufsc) {
     global $DB;
 
     $categoryid = $DB->get_field('course_categories', 'id', array('idnumber' => "curso_{$curso_ufsc}"));
     return context_coursecat::instance($categoryid);
-}
-
-function get_grupo_tutoria($id) {
-    $middleware = Middleware::singleton();
-    $sql = "SELECT * FROM {table_GruposTutoria} WHERE id=:id";
-    return $middleware->get_record_sql($sql, array('id' => $id));
-}
-
-function get_grupos_tutoria_select($curso_ufsc) {
-    $middleware = Middleware::singleton();
-    $sql = "SELECT id, nome FROM {table_GruposTutoria} WHERE curso=:curso ORDER BY nome";
-    return $middleware->get_records_sql_menu($sql, array('curso' => $curso_ufsc));
-}
-
-function get_grupos_tutoria_with_members_count($curso_ufsc) {
-    $middleware = Middleware::singleton();
-
-    $sql = "SELECT gt.id as grupo, gt.nome, IFNULL(estudante.quantidade, 0) as estudantes, IFNULL(tutor.quantidade, 0) as tutores
-              FROM {table_GruposTutoria} gt
-         LEFT JOIN (
-                  SELECT gt.id as grupo, COUNT(*) as quantidade
-                    FROM {table_GruposTutoria} gt
-                    JOIN {table_PessoasGruposTutoria} pg
-                      ON (gt.id=pg.grupo)
-                   WHERE pg.tipo=:tipo_estudante
-                GROUP BY pg.grupo
-                   ) as estudante
-                ON (estudante.grupo=gt.id)
-         LEFT JOIN (
-                  SELECT gt.id as grupo, COUNT(*) as quantidade
-                    FROM {table_GruposTutoria} gt
-                    JOIN {table_PessoasGruposTutoria} pg
-                      ON (gt.id=pg.grupo)
-                   WHERE pg.tipo=:tipo_tutor
-                GROUP BY pg.grupo
-                  ) as tutor
-               ON (tutor.grupo=gt.id)
-            WHERE gt.curso=:curso_ufsc
-         ORDER BY gt.nome";
-
-    $param = array('tipo_estudante' => GRUPO_TUTORIA_TIPO_ESTUDANTE, 'tipo_tutor' => GRUPO_TUTORIA_TIPO_TUTOR, 'curso_ufsc' => $curso_ufsc);
-    return $middleware->get_records_sql($sql, $param);
-}
-
-function get_cursos_ativos_list() {
-    $middleware = Middleware::singleton();
-
-    $sql = "SELECT curso, nome_sintetico
-              FROM {View_Cursos_Ativos}";
-
-    return $middleware->get_records_sql_menu($sql);
 }
 
 function get_curso_ufsc_id() {
@@ -164,101 +44,122 @@ function get_members_grupo_tutoria($grupo) {
     return $middleware->get_records_sql($sql, $params);
 }
 
-function redirect_to_gerenciar_tutores() {
-    $categoryid = required_param('categoryid', PARAM_INT);
-    redirect(new moodle_url('/local/tutores/index.php', array('categoryid' => $categoryid)));
+
+// Methods for the CLI Migration
+
+function local_tutores_cli_create_relationship($contextid) {
+    $new_relationship = new stdClass();
+    $new_relationship->name = 'Grupos de Tutoria';
+    $new_relationship->contextid = $contextid;
+    $new_relationship->description = 'Criado automáticamente pela ferramenta de migração de Grupos de Tutoria';
+    //$new_relationship->component = 'local_tutores';
+    //$new_relationship->idnumber = "local_tutores_{$contextid}";
+    $new_relationship->tags = array('grupo_tutoria');
+
+    return relationship_add_relationship($new_relationship);
 }
 
-/**
- * Remove um participante de um grupo de tutoria
- *
- * @param int $grupo id do grupo de tutoria
- * @param string $matricula código de matrícula do participante
- * @return bool
- */
-function remove_member_grupo_tutoria($grupo, $matricula) {
-    $middleware = Middleware::singleton();
-    $sql = "DELETE FROM {table_PessoasGruposTutoria}
-                  WHERE grupo=:grupo AND matricula=:matricula";
+function local_tutores_cli_create_cohorts($relationshipid) {
+    global $DB;
+    $role_student = local_tutores_cli_get_role_by_shortname('student');
+    $role_tutor = local_tutores_cli_get_role_by_shortname('td');
 
-    $params = array('grupo' => $grupo, 'matricula' => $matricula);
-    return (bool) $middleware->execute($sql, $params);
+    $cohort_student = $DB->get_record('cohort', array('idnumber' => 'alunos_curso:21000077'), '*', MUST_EXIST);
+    $cohort_tutor = $DB->get_record('cohort', array('idnumber' => 'tutores_ufsc_curso:21000077'), '*', MUST_EXIST);
+
+    $cohort_alunos = new stdClass();
+    $cohort_alunos->relationshipid = $relationshipid;
+    $cohort_alunos->cohortid = $cohort_student->id;
+    $cohort_alunos->roleid = $role_student->id;
+    relationship_add_cohort($cohort_alunos);
+
+    $cohort_tutores = new stdClass();
+    $cohort_tutores->relationshipid = $relationshipid;
+    $cohort_tutores->cohortid = $cohort_tutor->id;
+    $cohort_tutores->roleid = $role_tutor->id;
+    relationship_add_cohort($cohort_tutores);
 }
 
+function local_tutores_cli_create_groups($relationshipid, $grupos_tutoria) {
 
-function get_moodle_group_members($groupid) {
-    $middleware = Middleware::singleton();
+    $cohorts = array();
+    $cohorts['E'] = local_tutores_cli_get_relationship_cohort_by_shortname($relationshipid, 'student');
+    $cohorts['T'] = local_tutores_cli_get_relationship_cohort_by_shortname($relationshipid, 'td');
 
-    $sql = "SELECT u.*, vu.papel_principal
-              FROM {user} u
-              JOIN {groups_members} gm
-                ON (gm.userid=u.id AND gm.groupid = ?)
-              JOIN {view_Usuarios} vu
-                ON (vu.username=u.username)
-          ORDER BY u.firstname, u.lastname";
+    // Juntamente com a criação do grupo é feito a importação pois precisamos do ID do grupo
+    // E não há garantias de que o nome é único,
+    // portanto daqui pra frente perdemos a referência do ID antigo
+    foreach ($grupos_tutoria as $oldgrupo) {
+        $new_group = new stdClass();
+        $new_group->relationshipid = $relationshipid;
+        $new_group->name = $oldgrupo->nome;
 
-    return $middleware->get_records_sql($sql, array($groupid));
-}
+        echo "\n";
+        cli_heading("Criando grupo: {$oldgrupo->nome}");
+        $groupid = relationship_add_group($new_group);
 
-/**
- * Atualiza os dados de um grupo de tutoria existente
- *
- * @param string $curso_ufsc
- * @param int $grupo
- * @param string $nome
- * @return bool
- */
-function update_grupo_tutoria($curso_ufsc, $grupo, $nome) {
-    $middleware = Middleware::singleton();
-    $sql = "UPDATE {table_GruposTutoria} SET nome=? WHERE curso=? AND id=?";
-    return (bool) $middleware->execute($sql, array($nome, $curso_ufsc, $grupo));
-}
-
-/**
- * Realiza a validação das colunas informadas no CSV de importação em lote de participantes
- *
- * @param csv_import_reader $cir
- * @param moodle_url $returnurl return url in case of any error
- * @return array list of fields
- */
-function validate_upload_grupos_tutoria($cir, $returnurl) {
-    $stdfields = array('username', 'tipo');
-    $columns = $cir->get_columns();
-
-    if (empty($columns)) {
-        $cir->close();
-        $cir->cleanup();
-        print_error('cannotreadtmpfile', 'error', $returnurl);
+        local_tutores_cli_add_members_to_group($relationshipid, $oldgrupo->id, $groupid, $cohorts);
     }
 
-    if (count($columns) < 2) {
-        $cir->close();
-        $cir->cleanup();
-        print_error('csvfewcolumns', 'error', $returnurl);
+
+}
+
+function local_tutores_cli_add_members_to_group($relationshipid, $oldgroupid, $groupid, $cohorts) {
+    $old_members = get_members_grupo_tutoria($oldgroupid);
+
+    foreach($old_members as $old_member) {
+        echo " * Cadastrando membro: {$old_member->username} ({$old_member->grupo_tutoria_tipo})\n";
+
+        relationship_add_member($groupid, $cohorts[$old_member->grupo_tutoria_tipo]->id, $old_member->id);
     }
+}
 
-    // test columns
-    $processed = array();
-    foreach ($columns as $key=>$unused) {
-        $field = $columns[$key];
-        $lcfield = core_text::strtolower($field);
-        if (in_array($field, $stdfields) or in_array($lcfield, $stdfields)) {
-            // standard fields are only lowercase
-            $newfield = $lcfield;
+function local_tutores_cli_get_relationship_cohort_by_shortname($relationshipid, $shortname) {
+    global $DB;
 
-        } else {
-            $cir->close();
-            $cir->cleanup();
-            print_error('invalidfieldname', 'error', $returnurl, $field);
-        }
+    $sql = "SELECT rc.*
+              FROM {relationship_cohorts} rc
+              JOIN {role} r
+                ON (r.id=rc.roleid)
+             WHERE relationshipid=:relationshipid
+               AND r.shortname = :shortname";
 
-        if (in_array($newfield, $processed)) {
-            $cir->close();
-            $cir->cleanup();
-            print_error('duplicatefieldname', 'error', $returnurl, $newfield);
-        }
-        $processed[$key] = $newfield;
-    }
+    $params = array('relationshipid' => $relationshipid, 'shortname' => $shortname);
+    return $DB->get_record_sql($sql, $params);
+}
 
-    return $columns;
+function local_tutores_cli_get_role_by_shortname($shortname) {
+    global $DB;
+
+    $sql = "SELECT r.*
+              FROM {role} r
+              JOIN {role_context_levels} rctx
+                ON (rctx.roleid = r.id)
+             WHERE r.shortname = :shortname
+               AND rctx.contextlevel = :contextlevel
+    ";
+
+    $params = array('shortname' => $shortname, 'contextlevel' => CONTEXT_COURSE);
+
+    return $DB->get_record_sql($sql, $params);
+}
+
+function local_tutores_cli_get_relationship_tutoria($contextid) {
+    global $DB;
+
+    $sql = "SELECT r.*
+              FROM {relationship} r
+              JOIN (
+                    SELECT ti.itemid as relationship_id
+                      FROM {tag_instance} ti
+                      JOIN {tag} t
+                        ON (t.id=ti.tagid)
+                     WHERE t.name='grupo_tutoria'
+                   ) tr
+                ON (r.id=tr.relationship_id)
+              WHERE r.contextid=:contextid";
+
+    $params = array('contextid' => $contextid);
+
+    return $DB->get_record_sql($sql, $params);
 }
