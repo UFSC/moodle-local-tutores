@@ -7,12 +7,13 @@ if ($hassiteconfig) {
 
     $available_roles = $DB->get_records('role');
     if ($available_roles) {
+        $available_roles = role_fix_names($available_roles, null, ROLENAME_ORIGINAL);
         $assignable_roles = get_roles_for_contextlevels(CONTEXT_COURSE);
 
         $roles = array();
         foreach ($assignable_roles as $assignable) {
             $role = $available_roles[$assignable];
-            $roles[$role->shortname] = $role->name;
+            $roles[$role->shortname] = $role->localname;
         }
 
         $ADMIN->add('users', new admin_category('grupostutoria', get_string('grupos_tutoria', 'local_tutores')));
