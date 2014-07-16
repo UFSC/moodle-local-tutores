@@ -6,7 +6,7 @@ require(__DIR__.'/../../../config.php');
 require_once($CFG->libdir.'/clilib.php');
 require_once(__DIR__.'/../lib.php');
 require_once(__DIR__.'/../locallib.php');
-require_once($CFG->dirroot.'/loqal/relationship/lib.php');
+require_once($CFG->dirroot.'/local/relationship/lib.php');
 require_once($CFG->dirroot.'/local/relationship/locallib.php');
 
 // Now get cli options.

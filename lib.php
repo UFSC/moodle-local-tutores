@@ -53,6 +53,31 @@ class grupos_tutoria {
     }
 
     /**
+     * Retorna lista de grupos de tutoria de um determinado curso ufsc
+     *
+     * @param string $curso_ufsc
+     * @param array $tutores
+     * @return array
+     */
+    static function get_grupos_tutoria($curso_ufsc, $tutores = null) {
+        $middleware = Middleware::singleton();
+
+        if (is_null($tutores))
+            $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso_ufsc ORDER BY nome";
+        else {
+            $tutores = int_array_to_sql($tutores);
+            $sql = "SELECT gt.id, gt.curso, gt.nome
+                      FROM {table_GruposTutoria} gt
+                      JOIN {table_PessoasGruposTutoria} pg
+                        ON (gt.id=pg.grupo AND gt.curso=:curso_ufsc)
+                      JOIN {user} u
+                        ON (pg.matricula=u.username AND pg.tipo=:tipo)
+                     WHERE u.id IN ({$tutores})";
+        }
+        return $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_TUTORIA_TIPO_TUTOR));
+    }
+
+    /**
      * Retorna lista orientadores de um determinado curso ufsc
      * FIXME: orientadores não estão sendo usados na filtragem
      *
