@@ -8,6 +8,7 @@ require_once(__DIR__.'/../lib.php');
 require_once(__DIR__.'/../locallib.php');
 require_once($CFG->dirroot.'/local/relationship/lib.php');
 require_once($CFG->dirroot.'/local/relationship/locallib.php');
+require_once($CFG->dirroot.'/local/tutores/middlewarelib.php');
 
 // Now get cli options.
 list($options, $unrecognized) = cli_get_params(
@@ -65,7 +66,7 @@ HELP;
 function local_tutores_cli_list($options) {
     $curso_ufsc = $options['cursoufsc'];
 
-    $grupos_tutoria = grupos_tutoria::get_grupos_tutoria($curso_ufsc);
+    $grupos_tutoria = local_tutores_cli_get_grupos_tutoria($curso_ufsc);
     $category = get_category_context_from_curso_ufsc($curso_ufsc);
 
     $relationship = local_tutores_cli_get_relationship_tutoria($category->id);
@@ -119,11 +120,36 @@ function local_tutores_cli_execute($options) {
     if (!$grupos) {
         cli_heading("Criando grupos para relationship: {$relationshipid}");
 
-        $grupos_tutoria = grupos_tutoria::get_grupos_tutoria($curso_ufsc);
+        $grupos_tutoria = local_tutores_cli_get_grupos_tutoria($curso_ufsc);
         local_tutores_cli_create_groups($relationshipid, $grupos_tutoria);
     } else {
         cli_heading("Grupos já existentes para relationship: {$relationshipid}");
     }
 
     exit(0);
+}
+
+/**
+ * Retorna lista de grupos de tutoria de um determinado curso ufsc
+ *
+ * @param string $curso_ufsc
+ * @param array $tutores
+ * @return array
+ */
+function local_tutores_cli_get_grupos_tutoria($curso_ufsc, $tutores = null) {
+    $middleware = Middleware::singleton();
+
+    if (is_null($tutores))
+        $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso_ufsc ORDER BY nome";
+    else {
+        $tutores = int_array_to_sql($tutores);
+        $sql = "SELECT gt.id, gt.curso, gt.nome
+                      FROM {table_GruposTutoria} gt
+                      JOIN {table_PessoasGruposTutoria} pg
+                        ON (gt.id=pg.grupo AND gt.curso=:curso_ufsc)
+                      JOIN {user} u
+                        ON (pg.matricula=u.username AND pg.tipo=:tipo)
+                     WHERE u.id IN ({$tutores})";
+    }
+    return $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_TUTORIA_TIPO_TUTOR));
 }
