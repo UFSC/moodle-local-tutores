@@ -250,7 +250,7 @@ class grupos_tutoria {
         $cohort = $DB->get_record_sql($sql, $params);
 
         if (!$cohort) {
-            print_error('relationship_cohort_estudantes_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
+            print_error('relationship_cohort_estudantes_not_available_error', 'local_tutores', '', null, "Relationship: {$relationship_id}");
         }
 
         return $cohort;
@@ -279,7 +279,7 @@ class grupos_tutoria {
         $cohort = $DB->get_record_sql($sql, $params);
 
         if (!$cohort) {
-            print_error('relationship_cohort_tutores_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
+            print_error('relationship_cohort_tutores_not_available_error', 'local_tutores', '', null, "Relationship: {$relationship_id}");
         }
 
         return $cohort;
@@ -314,12 +314,12 @@ class grupos_tutoria {
 
         //Evita o caso de um curso que retorne com mais de um relationship
         if (count($relationship) > 1) {
-            print_error('relationship_tutoria_not_available_error', 'report_unasus');
+            print_error('relationship_tutoria_not_available_error', 'local_tutores');
         }
 
         $relationship = reset($relationship);
         if (!$relationship) {
-            print_error('relationship_tutoria_not_available_error', 'report_unasus');
+            print_error('relationship_tutoria_not_available_error', 'local_tutores');
         }
 
         return $relationship;

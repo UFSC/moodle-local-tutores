@@ -16,12 +16,15 @@ $string['grupos_tutoria'] = 'Grupos de tutoria';
 $string['grupos_tutoria_settings'] = 'Configurar grupos de tutoria';
 $string['manage_groups'] = 'Gerenciar grupos de tutoria';
 $string['member_count'] = 'Estudantes';
-
 $string['pluginname'] = 'Grupos de Tutoria';
 $string['plugindescription'] = 'Gerencia relação de tutores em um curso';
 $string['settings_estudantes_allowed_roles'] = 'Estudantes';
 $string['settings_tutores_allowed_roles'] = 'Tutores';
-
 $string['tutores'] = 'Tutores';
 $string['tutores:manage'] = 'Gerenciar grupos de tutoria';
 $string['tutorship_groups'] = 'Grupos de Tutoria';
+
+/* Mensagens de erro */
+$string['relationship_cohort_estudantes_not_available_error'] = 'Não foi configurado o Cohort de Estudantes para relacionamento de tutoria.';
+$string['relationship_cohort_tutores_not_available_error'] = 'Não foi configurado o Cohort de Tutores para relacionamento de tutoria.';
+$string['relationship_tutoria_not_available_error'] = 'Não foi configurado o Relacionamento de Tutoria.';
