@@ -31,7 +31,7 @@ function get_curso_ufsc_id() {
  * @param int $grupo id do grupo de tutoria
  * @return array lista de participantes ou false em caso de falha
  */
-function get_members_grupo_tutoria($grupo) {
+function local_tutores_cli_get_members_grupo_tutoria($grupo) {
     $middleware = Middleware::singleton();
 
     $sql = "SELECT u.*, pg.tipo as grupo_tutoria_tipo
@@ -59,13 +59,13 @@ function local_tutores_cli_create_relationship($contextid) {
     return relationship_add_relationship($new_relationship);
 }
 
-function local_tutores_cli_create_cohorts($relationshipid) {
+function local_tutores_cli_create_cohorts($relationshipid, $curso_ufsc) {
     global $DB;
     $role_student = local_tutores_cli_get_role_by_shortname('student');
     $role_tutor = local_tutores_cli_get_role_by_shortname('td');
 
-    $cohort_student = $DB->get_record('cohort', array('idnumber' => 'alunos_curso:21000077'), '*', MUST_EXIST);
-    $cohort_tutor = $DB->get_record('cohort', array('idnumber' => 'tutores_ufsc_curso:21000077'), '*', MUST_EXIST);
+    $cohort_student = $DB->get_record('cohort', array('idnumber' => "alunos_curso:{$curso_ufsc}"), '*', MUST_EXIST);
+    $cohort_tutor = $DB->get_record('cohort', array('idnumber' => "tutores_ufsc_curso:{$curso_ufsc}"), '*', MUST_EXIST);
 
     $cohort_alunos = new stdClass();
     $cohort_alunos->relationshipid = $relationshipid;
@@ -98,14 +98,14 @@ function local_tutores_cli_create_groups($relationshipid, $grupos_tutoria) {
         cli_heading("Criando grupo: {$oldgrupo->nome}");
         $groupid = relationship_add_group($new_group);
 
-        local_tutores_cli_add_members_to_group($relationshipid, $oldgrupo->id, $groupid, $cohorts);
+        local_tutores_cli_add_members_to_group($oldgrupo->id, $groupid, $cohorts);
     }
 
 
 }
 
-function local_tutores_cli_add_members_to_group($relationshipid, $oldgroupid, $groupid, $cohorts) {
-    $old_members = get_members_grupo_tutoria($oldgroupid);
+function local_tutores_cli_add_members_to_group($oldgroupid, $groupid, $cohorts) {
+    $old_members = local_tutores_cli_get_members_grupo_tutoria($oldgroupid);
 
     foreach($old_members as $old_member) {
         echo " * Cadastrando membro: {$old_member->username} ({$old_member->grupo_tutoria_tipo})\n";
@@ -162,4 +162,30 @@ function local_tutores_cli_get_relationship_tutoria($contextid) {
     $params = array('contextid' => $contextid);
 
     return $DB->get_record_sql($sql, $params);
+}
+
+/**
+ * Retorna lista de grupos de tutoria de um determinado curso ufsc
+ *
+ * @param string $curso_ufsc
+ * @param array $tutores
+ * @return array
+ */
+function local_tutores_cli_get_grupos_tutoria($curso_ufsc, $tutores = null) {
+    $middleware = Middleware::singleton();
+
+    if (is_null($tutores)) {
+        $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso_ufsc ORDER BY nome";
+    } else {
+        $tutores = int_array_to_sql($tutores);
+        $sql = "SELECT gt.id, gt.curso, gt.nome
+                      FROM {table_GruposTutoria} gt
+                      JOIN {table_PessoasGruposTutoria} pg
+                        ON (gt.id=pg.grupo AND gt.curso=:curso_ufsc)
+                      JOIN {user} u
+                        ON (pg.matricula=u.username AND pg.tipo=:tipo)
+                     WHERE u.id IN ({$tutores})";
+    }
+
+    return $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_TUTORIA_TIPO_TUTOR));
 }
