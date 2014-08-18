@@ -28,3 +28,4 @@ $string['tutorship_groups'] = 'Grupos de Tutoria';
 $string['relationship_cohort_estudantes_not_available_error'] = 'Não foi configurado o Cohort de Estudantes para relacionamento de tutoria.';
 $string['relationship_cohort_tutores_not_available_error'] = 'Não foi configurado o Cohort de Tutores para relacionamento de tutoria.';
 $string['relationship_tutoria_not_available_error'] = 'Não foi configurado o Relacionamento de Tutoria.';
+$string['relationship_tutoria_too_many_available_error'] = 'Você possui mais de um Relacionamento de Tutoria configurado na mesma categoria. CORREÇÃO: Deve ter apenas 1.';

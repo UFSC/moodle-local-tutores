@@ -12,17 +12,17 @@ require_once($CFG->dirroot.'/local/tutores/middlewarelib.php');
 
 // Now get cli options.
 list($options, $unrecognized) = cli_get_params(
-        array(
-                'group' => null,
-                'cursoufsc' => null,
-                'execute' => false,
-                'list' => false,
-                'help' => false,
-        ),
-        array(
-                'l' => 'list',
-                'h' => 'help',
-        )
+    array(
+        'group' => null,
+        'cursoufsc' => null,
+        'execute' => false,
+        'list' => false,
+        'help' => false,
+    ),
+    array(
+        'l' => 'list',
+        'h' => 'help',
+    )
 );
 
 if (empty($CFG->version)) {
@@ -111,7 +111,7 @@ function local_tutores_cli_execute($options) {
     if (!$cohorts) {
         cli_heading("Criando cohorts para relationship: {$relationshipid}");
 
-        local_tutores_cli_create_cohorts($relationshipid);
+        local_tutores_cli_create_cohorts($relationshipid, $curso_ufsc);
     } else {
         cli_heading("Cohorts já existentes para relationship: {$relationshipid}");
     }
@@ -127,29 +127,4 @@ function local_tutores_cli_execute($options) {
     }
 
     exit(0);
-}
-
-/**
- * Retorna lista de grupos de tutoria de um determinado curso ufsc
- *
- * @param string $curso_ufsc
- * @param array $tutores
- * @return array
- */
-function local_tutores_cli_get_grupos_tutoria($curso_ufsc, $tutores = null) {
-    $middleware = Middleware::singleton();
-
-    if (is_null($tutores))
-        $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso_ufsc ORDER BY nome";
-    else {
-        $tutores = int_array_to_sql($tutores);
-        $sql = "SELECT gt.id, gt.curso, gt.nome
-                      FROM {table_GruposTutoria} gt
-                      JOIN {table_PessoasGruposTutoria} pg
-                        ON (gt.id=pg.grupo AND gt.curso=:curso_ufsc)
-                      JOIN {user} u
-                        ON (pg.matricula=u.username AND pg.tipo=:tipo)
-                     WHERE u.id IN ({$tutores})";
-    }
-    return $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_TUTORIA_TIPO_TUTOR));
 }

@@ -314,7 +314,7 @@ class grupos_tutoria {
 
         //Evita o caso de um curso que retorne com mais de um relationship
         if (count($relationship) > 1) {
-            print_error('relationship_tutoria_not_available_error', 'local_tutores');
+            print_error('relationship_tutoria_too_many_available_error', 'local_tutores');
         }
 
         $relationship = reset($relationship);
