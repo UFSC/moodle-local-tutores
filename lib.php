@@ -374,7 +374,7 @@ class grupos_tutoria {
      * @param $courseid Moodle course id
      * @return bool|mixed
      */
-    function get_curso_ufsc_id($courseid) {
+    static function get_curso_ufsc_id($courseid) {
         global $DB;
 
         $course = $DB->get_record('course', array('id' => $courseid), 'category', MUST_EXIST);
