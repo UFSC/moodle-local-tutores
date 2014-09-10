@@ -77,10 +77,10 @@ class grupos_tutoria {
      * Retorna o tutor responsável em um curso_ufsc por um estudante
      *
      * @param string $curso_ufsc
-     * @param string $matricula_estudante
+     * @param $student_userid
      * @return bool|mixed
      */
-    static function get_tutor_responsavel_estudante($curso_ufsc, $matricula_estudante) {
+    static function get_tutor_responsavel_estudante($curso_ufsc, $student_userid) {
         global $DB;
 
         $relationship = self::get_relationship_tutoria($curso_ufsc);
@@ -100,7 +100,7 @@ class grupos_tutoria {
                               ON (rm.userid=u.id AND rm.relationshipcohortid=:cohort_estudantes)
                             JOIN {relationship_groups} rg
                               ON (rg.relationshipid=:relationship_id2 AND rg.id=rm.relationshipgroupid)
-                           WHERE u.username=:estudante
+                           WHERE u.id=:estudante
                        ) grupo_estudante
                     ON (rg.id=grupo_estudante.id)";
 
@@ -109,7 +109,7 @@ class grupos_tutoria {
                 'relationship_id2' => $relationship->id,
                 'cohort_estudantes' => $cohort_estudantes->id,
                 'cohort_tutores' => $cohort_tutores->id,
-                'estudante' => $matricula_estudante);
+                'estudante' => $student_userid);
 
         return $DB->get_record_sql($sql, $params);
     }
@@ -365,6 +365,31 @@ class grupos_tutoria {
          WHERE cc.idnumber=:curso_ufsc";
 
         return $DB->get_field_sql($ufsc_category_sql, array('curso_ufsc' => "curso_{$curso_ufsc}"));
+    }
+
+    /**
+     * Recupera o código CursoUFSC a partir do "courseid" informado
+     * A informação do curso UFSC está armazenada no campo idnumber da categoria principal (nivel 1)
+     *
+     * @param $courseid Moodle course id
+     * @return bool|mixed
+     */
+    static function get_curso_ufsc_id($courseid) {
+        global $DB;
+
+        $course = $DB->get_record('course', array('id' => $courseid), 'category', MUST_EXIST);
+        $category = $DB->get_record('course_categories', array('id' => $course->category), 'id, idnumber, depth, path', MUST_EXIST);
+
+        if ($category->depth > 1) {
+            // Pega o primeiro id do caminho
+            preg_match('/^\/([0-9]+)\//', $category->path, $matches);
+            $root_category = $matches[1];
+
+            $category = $DB->get_record('course_categories', array('id' => $root_category), 'id, idnumber, depth, path', MUST_EXIST);
+        }
+
+        $curso_ufsc_id = str_replace('curso_', '', $category->idnumber, $count);
+        return ($count) ? $curso_ufsc_id : false;
     }
 
 }
