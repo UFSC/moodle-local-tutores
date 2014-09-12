@@ -285,6 +285,8 @@ class grupos_tutoria {
         return $cohort;
     }
 
+
+    #TODO Roberto: Remover AKI e trocar por get_relationship_tutoria_por_categoria_curso
     /**
      * Retorna o relationship que designa os grupos de tutoria de um determinado curso UFSC
      * @param $curso_ufsc
@@ -312,7 +314,7 @@ class grupos_tutoria {
 
         $relationship = $DB->get_records_sql($sql);
 
-        //Evita o caso de um curso que retorne com mais de um relationship
+        //Evita o csaso de um curso que retorne com mais de um relationship
         if (count($relationship) > 1) {
             print_error('relationship_tutoria_too_many_available_error', 'local_tutores');
         }
@@ -326,6 +328,45 @@ class grupos_tutoria {
     }
 
     /**
+     * Retorna o relationship que designa os grupos de tutoria de uma determinada categoria de turma
+     * @param $categoria_turma
+     * @return mixed
+     */
+    static function get_relationship_tutoria_por_categoria_turma($categoria_turma) {
+        global $DB;
+
+        $sql = "SELECT r.id, r.name as nome
+                  FROM {relationship} r
+                  JOIN (
+                        SELECT ti.itemid as relationship_id
+                          FROM {tag_instance} ti
+                          JOIN {tag} t
+                            ON (t.id=ti.tagid)
+                         WHERE t.name='grupo_tutoria'
+                       ) tr
+                    ON (r.id=tr.relationship_id)
+                  JOIN {context} ctx
+                    ON (ctx.id=r.contextid)
+                  JOIN {course_categories} cc
+                    ON (ctx.instanceid = cc.id AND (cc.path LIKE '%/$categoria_turma/%' OR cc.path LIKE '%/$categoria_turma'))";
+
+        $relationship = $DB->get_records_sql($sql);
+
+        //Evita o caso de um curso que retorne com mais de um relationship
+        if (count($relationship) > 1) {
+            print_error('relationship_tutoria_too_many_available_error', 'local_tutores');
+        }
+
+        $relationship = reset($relationship);
+        if (!$relationship) {
+            print_error('relationship_tutoria_not_available_error', 'local_tutores');
+        }
+
+        return $relationship;
+    }
+
+    #TODO Roberto: Remove AKI e trocar por [ get_tutores_categoria_curso_ufsc ]
+    /**
      * Dado que alimenta a lista do filtro tutores
      *
      * @param $curso_ufsc
@@ -335,6 +376,31 @@ class grupos_tutoria {
         global $DB;
 
         $relationship = self::get_relationship_tutoria($curso_ufsc);
+        $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
+
+        $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
+                  FROM {user} u
+                  JOIN {relationship_members} rm
+                    ON (rm.userid=u.id AND rm.relationshipcohortid=:cohort_id)
+                  JOIN {relationship_groups} rg
+                    ON (rg.relationshipid=:relationship_id AND rg.id=rm.relationshipgroupid)
+              ORDER BY u.firstname";
+
+        $params = array('relationship_id' => $relationship->id, 'cohort_id' => $cohort_tutores->id);
+
+        return $DB->get_records_sql_menu($sql, $params);
+    }
+
+    /**
+     * Dado que alimenta a lista do filtro tutores
+     *
+     * @param $categoria_curso
+     * @return arrays
+     */
+    static function get_tutores_categoria_curso_ufsc($categoria_curso) {
+        global $DB;
+
+        $relationship = self::get_relationship_tutoria_por_categoria_turma($categoria_curso);
         $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
@@ -391,5 +457,85 @@ class grupos_tutoria {
         $curso_ufsc_id = str_replace('curso_', '', $category->idnumber, $count);
         return ($count) ? $curso_ufsc_id : false;
     }
+
+    /**
+     * Monta uma string para ser utilizada na clausula IN de uma SELECT
+     * A informação será utilizada para a tabela CONTEXT com o campo "instanceid"
+     *
+     * @param $courseid Moodle course id
+     * @return bool|mixed
+     */
+    static function get_path_category_by_course($courseid) {
+        global $DB;
+
+        $sql = "SELECT SUBSTRING(REPLACE(cc.path, '/', ', '),2) path_list
+			      FROM {course} co
+			      JOIN {course_categories} cc
+			        ON (co.category = cc.id)
+	 		     WHERE co.id = :courseid";
+
+        return $DB->get_field_sql($sql, array('courseid' => $courseid));
+
+    }
+
+    /**
+     * Recupera a categoria do CursoUFSC a partir do "courseid" informado
+     * A informação ...
+     *
+     * @param $courseid Moodle course id
+     * @return bool|mixed
+     */
+    static function get_categoria_curso_ufsc($courseid) {
+        global $DB;
+
+        $path_list = trim(self::get_path_category_by_course($courseid));
+
+        $sql = "SELECT cc1.id AS course_id
+	              FROM {course_categories} cc1
+	              JOIN {context} c1
+	                ON (cc1.id = c1.instanceid)
+	             WHERE (c1.contextlevel = 40)
+	               AND (cc1.id IN ($path_list))
+                   AND (cc1.idnumber != '')
+                 UNION
+                SELECT instanceid
+                  FROM {inscricoes_activities} ia
+                  JOIN {context} c
+                    ON (ia.contextid = c.id)
+                 WHERE (ia.enable = 1)
+                   AND (c.contextlevel = 40)
+                   AND (c.instanceid IN ($path_list))";
+
+        $categoria = $DB->get_field_sql($sql);
+
+        return $categoria;
+    }
+
+    /**
+     * Recupera a categoria do CursoUFSC a partir do "courseid" informado
+     * A informação do curso UFSC está armazenada no campo
+     *
+     * @param $ufsc_category
+     * @return bool|mixed
+     */
+    static function get_categoria_turma_ufsc($ufsc_category) {
+        global $DB;
+
+        $path_list = trim(self::get_path_category_by_course($ufsc_category));
+
+        $sql = "SELECT ct.instanceid AS course_category_id
+                  FROM {grade_curricular} gc
+                  JOIN (SELECT *
+    	                   FROM {context}
+		                  WHERE instanceid IN ($path_list)
+		                    AND contextlevel = 40
+                       ) ct
+                    ON (gc.contextid = ct.id)";
+
+        $categoria = $DB->get_field_sql($sql);
+
+        return $categoria;
+    }
+
 
 }
