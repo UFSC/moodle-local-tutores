@@ -74,16 +74,16 @@ class grupos_tutoria {
     }
 
     /**
-     * Retorna o tutor responsável em um curso_ufsc por um estudante
+     * Retorna o tutor responsável em umm categoria de turma de um curso por um estudante
      *
-     * @param string $curso_ufsc
+     * @param string $categoria_turma
      * @param $student_userid
      * @return bool|mixed
      */
-    static function get_tutor_responsavel_estudante($curso_ufsc, $student_userid) {
+    static function get_tutor_responsavel_estudante($categoria_turma, $student_userid) {
         global $DB;
 
-        $relationship = self::get_relationship_tutoria($curso_ufsc);
+        $relationship = self::get_relationship_tutoria($categoria_turma);
         $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
         $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
 
@@ -115,15 +115,15 @@ class grupos_tutoria {
     }
 
     /**
-     * Listagem de estudantes que participam de um curso UFSC e estão relacionados a um tutor
+     * Listagem de estudantes que participam de uma categoria de turma de uma curso e estão relacionados a um tutor
      *
-     * @param $curso_ufsc
+     * @param $categoria_turma
      * @return array [id][fullname]
      */
-    static function get_estudantes_curso_ufsc($curso_ufsc) {
+    static function get_estudantes($categoria_turma) {
         global $DB;
 
-        $relationship = self::get_relationship_tutoria($curso_ufsc);
+        $relationship = self::get_relationship_tutoria($categoria_turma);
         $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
@@ -142,13 +142,13 @@ class grupos_tutoria {
     /**
      * Retorna lista de grupos de tutoria de um determinado curso ufsc
      *
-     * @param string $curso_ufsc
+     * @param string $categoria_turma
      * @param array $tutores
      * @return array
      */
-    static function get_grupos_tutoria($curso_ufsc, $tutores = null) {
+    static function get_grupos_tutoria($categoria_turma, $tutores = null) {
         global $DB;
-        $relationship = self::get_relationship_tutoria($curso_ufsc);
+        $relationship = self::get_relationship_tutoria($categoria_turma);
 
         if (is_null($tutores)) {
             $sql = "SELECT rg.*
@@ -179,15 +179,15 @@ class grupos_tutoria {
      * Retorna a string que é utilizada no agrupamento por grupos de tutoria
      *
      * O padrão é $nome_do_grupo - Tutor(es) responsaveis
-     * @param $curso_ufsc
+     * @param $categoria_turma
      * @param $id
      * @return string
      * @throws dml_read_exception
      */
-    static function grupo_tutoria_to_string($curso_ufsc, $id) {
+    static function grupo_tutoria_to_string($categoria_turma, $id) {
         global $DB;
 
-        $relationship = self::get_relationship_tutoria($curso_ufsc);
+        $relationship = self::get_relationship_tutoria($categoria_turma);
         $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
 
         $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_tutores->id, 'grupo_id' => $id);
@@ -286,14 +286,12 @@ class grupos_tutoria {
     }
 
     /**
-     * Retorna o relationship que designa os grupos de tutoria de um determinado curso UFSC
-     * @param $curso_ufsc
+     * Retorna o relationship que designa os grupos de tutoria de uma determinada categoria de turma
+     * @param $categoria_turma
      * @return mixed
      */
-    static function get_relationship_tutoria($curso_ufsc) {
+    static function get_relationship_tutoria($categoria_turma) {
         global $DB;
-
-        $ufsc_category = self::get_category_from_curso_ufsc($curso_ufsc);
 
         $sql = "SELECT r.id, r.name as nome
                   FROM {relationship} r
@@ -308,7 +306,7 @@ class grupos_tutoria {
                   JOIN {context} ctx
                     ON (ctx.id=r.contextid)
                   JOIN {course_categories} cc
-                    ON (ctx.instanceid = cc.id AND (cc.path LIKE '/$ufsc_category/%' OR cc.path LIKE '/$ufsc_category'))";
+                    ON (ctx.instanceid = cc.id AND (cc.path LIKE '%/$categoria_turma/%' OR cc.path LIKE '%/$categoria_turma'))";
 
         $relationship = $DB->get_records_sql($sql);
 
@@ -328,13 +326,13 @@ class grupos_tutoria {
     /**
      * Dado que alimenta a lista do filtro tutores
      *
-     * @param $curso_ufsc
-     * @return array
+     * @param $categoria_turma int id da categoria
+     * @return array [id, fullname]
      */
-    static function get_tutores_curso_ufsc($curso_ufsc) {
+    static function get_tutores($categoria_turma) {
         global $DB;
 
-        $relationship = self::get_relationship_tutoria($curso_ufsc);
+        $relationship = self::get_relationship_tutoria($categoria_turma);
         $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
@@ -349,47 +347,4 @@ class grupos_tutoria {
 
         return $DB->get_records_sql_menu($sql, $params);
     }
-
-    /**
-     * Localiza uma categoria com base no curso UFSC informado
-     *
-     * @param int $curso_ufsc Código do Curso UFSC
-     * @return mixed
-     */
-    static function get_category_from_curso_ufsc($curso_ufsc) {
-        global $DB;
-
-        $ufsc_category_sql = "
-        SELECT cc.id
-          FROM {course_categories} cc
-         WHERE cc.idnumber=:curso_ufsc";
-
-        return $DB->get_field_sql($ufsc_category_sql, array('curso_ufsc' => "curso_{$curso_ufsc}"));
-    }
-
-    /**
-     * Recupera o código CursoUFSC a partir do "courseid" informado
-     * A informação do curso UFSC está armazenada no campo idnumber da categoria principal (nivel 1)
-     *
-     * @param $courseid Moodle course id
-     * @return bool|mixed
-     */
-    static function get_curso_ufsc_id($courseid) {
-        global $DB;
-
-        $course = $DB->get_record('course', array('id' => $courseid), 'category', MUST_EXIST);
-        $category = $DB->get_record('course_categories', array('id' => $course->category), 'id, idnumber, depth, path', MUST_EXIST);
-
-        if ($category->depth > 1) {
-            // Pega o primeiro id do caminho
-            preg_match('/^\/([0-9]+)\//', $category->path, $matches);
-            $root_category = $matches[1];
-
-            $category = $DB->get_record('course_categories', array('id' => $root_category), 'id, idnumber, depth, path', MUST_EXIST);
-        }
-
-        $curso_ufsc_id = str_replace('curso_', '', $category->idnumber, $count);
-        return ($count) ? $curso_ufsc_id : false;
-    }
-
 }
