@@ -393,23 +393,6 @@ class grupos_tutoria {
     }
 
     /**
-     * Localiza uma categoria com base no curso UFSC informado
-     *
-     * @param int $curso_ufsc Código do Curso UFSC
-     * @return mixed
-     */
-    static function get_category_from_curso_ufsc($curso_ufsc) {
-        global $DB;
-
-        $ufsc_category_sql = "
-        SELECT cc.id
-          FROM {course_categories} cc
-         WHERE cc.idnumber=:curso_ufsc";
-
-        return $DB->get_field_sql($ufsc_category_sql, array('curso_ufsc' => "curso_{$curso_ufsc}"));
-    }
-
-    /**
      * Recupera o código CursoUFSC a partir do "courseid" informado
      * A informação do curso UFSC está armazenada no campo idnumber da categoria principal (nivel 1)
      *
