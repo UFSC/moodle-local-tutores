@@ -276,7 +276,7 @@ class grupo_orientacao extends base_group {
         $cohort = $DB->get_record_sql($sql, $params);
 
         if (!$cohort) {
-            print_error('relationship_cohort_tutores_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
+            print_error('relationship_cohort_orientadores_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
         }
 
         return $cohort;

@@ -31,10 +31,11 @@ $string['tutores:manage'] = 'Gerenciar grupos de tutoria';
 $string['tutorship_groups'] = 'Grupos de Tutoria';
 
 /* Mensagens de erro */
-$string['relationship_cohort_estudantes_not_available_error'] = 'Não foi configurado o Cohort de Estudantes para relacionamento de tutoria.';
+$string['relationship_cohort_estudantes_not_available_error'] = 'Não foi configurado o Cohort de Estudantes para relacionamento.';
 $string['relationship_cohort_tutores_not_available_error'] = 'Não foi configurado o Cohort de Tutores para relacionamento de tutoria.';
 $string['relationship_grupo_tutoria_not_available_error'] = 'Não foi configurado o Relacionamento de Tutoria.';
 $string['relationship_grupo_tutoria_too_many_available_error'] = 'Você possui mais de um Relacionamento de Tutoria configurado na mesma categoria. CORREÇÃO: Deve ter apenas 1.';
 
 $string['relationship_grupo_orientacao_not_available_error'] = 'Não foi configurado o Relacionamento de Orientação.';
 $string['relationship_grupo_orientacao_too_many_available_error'] = 'Você possui mais de um Relacionamento de Orientação configurado na mesma categoria. CORREÇÃO: Deve ter apenas 1.';
+$string['relationship_cohort_orientadores_not_available_error'] = 'Não foi configurado o Cohort de Orientadores para o relacionamento.';
