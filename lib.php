@@ -49,7 +49,7 @@ class base_group {
     static function get_estudantes($categoria_turma) {
         global $DB;
 
-        $relationship = self::get_relationship_tutoria($categoria_turma);
+        $relationship = grupos_tutoria::get_relationship_tutoria($categoria_turma);
         $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
@@ -68,8 +68,11 @@ class base_group {
     /**
      * Retorna o tutor responsável em um curso_ufsc por um estudante
      *
-     * @param string $categoria_turma
+     * @param $relationship
+     * @param $cohort_responsavel
      * @param $student_userid
+     * @throws dml_missing_record_exception
+     * @throws dml_multiple_records_exception
      * @return bool|mixed
      */
     static function get_responsavel_estudante($relationship, $cohort_responsavel, $student_userid) {
