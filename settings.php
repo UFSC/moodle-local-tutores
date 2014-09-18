@@ -27,6 +27,14 @@ if ($hassiteconfig) {
                 get_string('description_tutores_allowed_roles', 'local_tutores'), null, $roles));
 
         $ADMIN->add('grupostutoria', $settings);
-    }
 
+        $ADMIN->add('users', new admin_category('gruposorientador', get_string('grupo_orientador', 'local_tutores')));
+
+        $settings = new admin_settingpage('grupos_orientacao_settings', get_string('grupos_orientacao_settings', 'local_tutores'));
+        $settings->add(new admin_setting_configmultiselect('local_tutores_orientador_roles',
+            get_string('settings_orientadores_allowed_roles', 'local_tutores'),
+            get_string('description_orientadores_allowed_roles', 'local_tutores'), null, $roles));
+
+        $ADMIN->add('gruposorientador', $settings);
+    }
 }
