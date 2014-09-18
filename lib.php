@@ -3,7 +3,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/user/selector/lib.php');
-require_once($CFG->dirroot.'/local/tutores/middlewarelib.php');
 
 define('GRUPO_TUTORIA_TIPO_ESTUDANTE', 'E');
 define('GRUPO_TUTORIA_TIPO_TUTOR', 'T');
@@ -232,27 +231,6 @@ class grupo_orientacao extends base_group {
         global $CFG;
 
         return explode(',', $CFG->local_tutores_orientador_roles);
-    }
-
-    /**
-     * Retorna lista orientadores de um determinado curso ufsc
-     * FIXME: orientadores não estão sendo usados na filtragem
-     *
-     * @param string $curso_ufsc
-     * @param null $orientadores
-     * @return array
-     */
-    static function get_grupos_orientacao($curso_ufsc, $orientadores = null) {
-        $middleware = Middleware::singleton();
-
-        $sql = "SELECT DISTINCT u.id, ao.username_orientador, u.firstname
-                  FROM {view_Alunos_Orientadores} ao
-                  JOIN {user} u
-                    ON (ao.username_orientador=u.username)
-              ORDER BY u.firstname
-                ";
-
-        return $middleware->get_records_sql($sql, array('curso_ufsc' => $curso_ufsc, 'tipo' => GRUPO_ORIENTACAO_TIPO_ORIENTADOR));
     }
 
     /**

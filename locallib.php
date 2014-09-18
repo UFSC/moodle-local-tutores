@@ -4,7 +4,6 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/moodlelib.php');
 require_once($CFG->libdir . '/coursecatlib.php');
-require_once($CFG->dirroot . '/local/tutores/middlewarelib.php');
 require_once($CFG->dirroot . '/local/tutores/lib.php');
 
 function get_category_context_from_curso_ufsc($curso_ufsc) {
