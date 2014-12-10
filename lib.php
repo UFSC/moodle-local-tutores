@@ -221,6 +221,26 @@ class base_group {
 
 class grupo_orientacao extends base_group {
 
+    static function get_estudantes($categoria_turma){
+        global $DB;
+
+        $relationship = self::get_relationship_orientacao($categoria_turma);
+        $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
+
+        $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
+                  FROM {user} u
+                  JOIN {relationship_members} rm
+                    ON (rm.userid=u.id)
+                  JOIN {relationship_groups} rg
+                    ON (rg.id=rm.relationshipgroupid)
+                 WHERE rm.relationshipcohortid=:cohort_id AND rg.relationshipid=:relationship_id
+              ORDER BY u.firstname";
+
+        $params = array('relationship_id' => $relationship->id, 'cohort_id' => $cohort_estudantes->id);
+
+        return $DB->get_records_sql_menu($sql, $params);
+    }
+
     /**
      * Retorna os papéis que estão sendo considerados como orientadores
      *
@@ -271,12 +291,98 @@ class grupo_orientacao extends base_group {
     }
 
     /**
-     * Retorna o relationship que designa os grupos de tutoria de um determinado curso UFSC
+     * Retorna o relationship que designa os grupos de orientacao de um determinado curso UFSC
      * @param $categoria_turma int
      * @return mixed
      */
     static function get_relationship_orientacao($categoria_turma) {
         return self::get_relationship($categoria_turma, 'grupo_orientacao');
+    }
+
+    static function get_grupos_orientacao($categoria_turma, $orientadores = null) {
+        global $DB;
+        $relationship = self::get_relationship_orientacao($categoria_turma);
+
+        if (is_null($orientadores)) {
+            $sql = "SELECT rg.*
+                      FROM {relationship_groups} rg
+                     WHERE rg.relationshipid = :relationshipid
+                  GROUP BY rg.id
+                  ORDER BY name";
+            $params = array('relationshipid' => $relationship->id);
+        }
+
+        // AJUSTAR PARA QUANDO ORIENTADORES ESTIVEREM DISPONÍVEIS NO FILTRO
+
+        /*else {
+            $tutores_sql = int_array_to_sql($orientadores);
+            $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
+
+            $sql = "SELECT rg.*
+                      FROM {relationship_groups} rg
+                      JOIN {relationship_members} rm
+                        ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+                     WHERE rg.relationshipid = :relationshipid
+                       AND rm.userid IN ({$tutores_sql})
+                  GROUP BY rg.id
+                  ORDER BY name";
+            $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_tutores->id);
+        }*/
+
+        return $DB->get_records_sql($sql, $params);
+    }
+
+    /**
+     * Retorna a string que é utilizada no agrupamento por grupos de orientacao
+     *
+     * O padrão é $nome_do_grupo - Orientador(es) responsaveis
+     * @param $categoria_turma
+     * @param $id
+     * @return string
+     * @throws dml_read_exception
+     */
+    static function grupo_orientacao_to_string($categoria_turma, $id) {
+        global $DB;
+
+        $relationship = self::get_relationship_orientacao($categoria_turma);
+        $cohort_orientadores = self::get_relationship_cohort_orientadores($relationship->id);
+
+        $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_orientadores->id, 'grupo_id' => $id);
+
+        $sql = "SELECT rg.*
+                  FROM {relationship_groups} rg
+             LEFT JOIN {relationship_members} rm
+                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+                 WHERE rg.relationshipid = :relationshipid
+                   AND rg.id=:grupo_id
+              GROUP BY rg.id
+              ORDER BY name";
+
+        $grupos_orientacao = $DB->get_records_sql($sql, $params);
+
+        $sql = "SELECT u.id as user_id, CONCAT(u.firstname,' ',u.lastname) as fullname
+                  FROM {relationship_groups} rg
+             LEFT JOIN {relationship_members} rm
+                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+             LEFT JOIN {user} u
+                    ON (u.id=rm.userid)
+                 WHERE rg.relationshipid = :relationshipid
+                   AND rg.id=:grupo_id
+              GROUP BY rg.id
+              ORDER BY name";
+
+        $orientadores = $DB->get_records_sql($sql, $params);
+
+        $string = '<strong>'.$grupos_orientacao[$id]->name.'</strong>';
+        if (empty($orientadores)) {
+            return $string." - Sem Orientador Responsável";
+        } else {
+            foreach ($orientadores as $orientador) {
+                $string .= ' - '.$orientador->fullname.' ';
+            }
+        }
+
+        return $string;
     }
 
 }
