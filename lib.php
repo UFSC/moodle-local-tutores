@@ -116,6 +116,7 @@ class base_group {
         global $DB;
 
         $student_role = self::get_papeis_estudantes();
+
         list($sqlfragment, $paramsfragment) = $DB->get_in_or_equal($student_role, SQL_PARAMS_NAMED, 'shortname');
 
         $sql = "SELECT rc.*
@@ -225,6 +226,7 @@ class grupo_orientacao extends base_group {
         global $DB;
 
         $relationship = self::get_relationship_orientacao($categoria_turma);
+
         $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
@@ -312,22 +314,21 @@ class grupo_orientacao extends base_group {
             $params = array('relationshipid' => $relationship->id);
         }
 
-        // AJUSTAR PARA QUANDO ORIENTADORES ESTIVEREM DISPONÍVEIS NO FILTRO
+        else {
 
-        /*else {
-            $tutores_sql = int_array_to_sql($orientadores);
-            $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
+            $orientadores_sql = int_array_to_sql($orientadores);
+            $cohort_orientadores = self::get_relationship_cohort_orientadores($relationship->id);
 
             $sql = "SELECT rg.*
                       FROM {relationship_groups} rg
                       JOIN {relationship_members} rm
                         ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
                      WHERE rg.relationshipid = :relationshipid
-                       AND rm.userid IN ({$tutores_sql})
+                       AND rm.userid IN ({$orientadores_sql})
                   GROUP BY rg.id
                   ORDER BY name";
-            $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_tutores->id);
-        }*/
+            $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_orientadores->id);
+        }
 
         return $DB->get_records_sql($sql, $params);
     }
