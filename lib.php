@@ -386,6 +386,31 @@ class grupo_orientacao extends base_group {
         return $string;
     }
 
+    /**
+     * Dado que alimenta a lista do filtro orientadores
+     *
+     * @param $categoria_turma int id da categoria
+     * @return array [id, fullname]
+     */
+    static function get_orientadores($categoria_turma) {
+        global $DB;
+
+        $relationship = self::get_relationship_orientacao($categoria_turma);
+        $cohort_orientadores = self::get_relationship_cohort_orientadores($relationship->id);
+
+        $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
+                  FROM {user} u
+                  JOIN {relationship_members} rm
+                    ON (rm.userid=u.id AND rm.relationshipcohortid=:cohort_id)
+                  JOIN {relationship_groups} rg
+                    ON (rg.relationshipid=:relationship_id AND rg.id=rm.relationshipgroupid)
+              ORDER BY u.firstname";
+
+        $params = array('relationship_id' => $relationship->id, 'cohort_id' => $cohort_orientadores->id);
+
+        return $DB->get_records_sql_menu($sql, $params);
+    }
+
 }
 
 class grupos_tutoria extends base_group {
