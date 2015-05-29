@@ -1,5 +1,5 @@
 {
-    "name": "moodle-ufsc/local-tutores",
+    "name": "unasus/local-tutores",
     "description": "Utilizado pela ferramenta de TCC desenvolvida para UNASUS (equipe Roberto)",
     "license": "GPLv3",
     "type": "moodle-local",
