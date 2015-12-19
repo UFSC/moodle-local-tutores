@@ -316,7 +316,7 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
 
         else {
 
-            $orientadores_sql = int_array_to_sql($orientadores);
+            $orientadores_sql = report_unasus_int_array_to_sql($orientadores);
             $cohort_orientadores = self::get_relationship_cohort_orientadores($relationship->id);
 
             $sql = "SELECT rg.*
@@ -459,7 +459,7 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
                   ORDER BY name";
             $params = array('relationshipid' => $relationship->id);
         } else {
-            $tutores_sql = int_array_to_sql($tutores);
+            $tutores_sql = report_unasus_int_array_to_sql($tutores);
             $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
 
             $sql = "SELECT rg.*

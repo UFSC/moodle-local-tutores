@@ -156,7 +156,7 @@ function local_tutores_cli_get_grupos_tutoria($curso_ufsc, $tutores = null) {
     if (is_null($tutores)) {
         $sql = "SELECT * FROM {table_GruposTutoria} WHERE curso=:curso_ufsc ORDER BY nome";
     } else {
-        $tutores = int_array_to_sql($tutores);
+        $tutores = report_unasus_int_array_to_sql($tutores);
         $sql = "SELECT gt.id, gt.curso, gt.nome
                       FROM {table_GruposTutoria} gt
                       JOIN {table_PessoasGruposTutoria} pg
