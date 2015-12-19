@@ -8,7 +8,7 @@ define('GRUPO_TUTORIA_TIPO_ESTUDANTE', 'E');
 define('GRUPO_TUTORIA_TIPO_TUTOR', 'T');
 define('GRUPO_ORIENTACAO_TIPO_ORIENTADOR', 'O');
 
-function local_tutores_extends_settings_navigation(navigation_node $navigation) {
+function local_tutores_extend_settings_navigation(navigation_node $navigation) {
     global $PAGE;
 
     if (is_a($PAGE->context, 'context_coursecat') && has_capability('local/tutores:manage', $PAGE->context)) {
