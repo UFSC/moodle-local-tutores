@@ -25,7 +25,7 @@ function local_tutores_extend_settings_navigation(navigation_node $navigation) {
     }
 }
 
-class base_group {
+class local_tutores_base_group {
 
     /**
      * Retorna os papéis que estão sendo considerados como estudantes
@@ -48,7 +48,7 @@ class base_group {
     static function get_estudantes($categoria_turma) {
         global $DB;
 
-        $relationship = grupos_tutoria::get_relationship_tutoria($categoria_turma);
+        $relationship = local_tutores_grupos_tutoria::get_relationship_tutoria($categoria_turma);
         $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
@@ -220,7 +220,7 @@ class base_group {
     }
 }
 
-class grupo_orientacao extends base_group {
+class local_tutores_grupo_orientacao extends local_tutores_base_group {
 
     static function get_estudantes($categoria_turma){
         global $DB;
@@ -316,7 +316,7 @@ class grupo_orientacao extends base_group {
 
         else {
 
-            $orientadores_sql = int_array_to_sql($orientadores);
+            $orientadores_sql = report_unasus_int_array_to_sql($orientadores);
             $cohort_orientadores = self::get_relationship_cohort_orientadores($relationship->id);
 
             $sql = "SELECT rg.*
@@ -413,7 +413,7 @@ class grupo_orientacao extends base_group {
 
 }
 
-class grupos_tutoria extends base_group {
+class local_tutores_grupos_tutoria extends local_tutores_base_group {
 
     /**
      * Retorna os papéis que estão sendo considerados como tutores
@@ -459,7 +459,7 @@ class grupos_tutoria extends base_group {
                   ORDER BY name";
             $params = array('relationshipid' => $relationship->id);
         } else {
-            $tutores_sql = int_array_to_sql($tutores);
+            $tutores_sql = report_unasus_int_array_to_sql($tutores);
             $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
 
             $sql = "SELECT rg.*
@@ -537,7 +537,7 @@ class grupos_tutoria extends base_group {
     static function get_relationship_cohort_tutores($relationship_id) {
         global $DB;
 
-        $tutor_role = grupos_tutoria::get_papeis_tutores();
+        $tutor_role = local_tutores_grupos_tutoria::get_papeis_tutores();
         list($sqlfragment, $paramsfragment) = $DB->get_in_or_equal($tutor_role, SQL_PARAMS_NAMED, 'shortname');
 
         $sql = "SELECT rc.*
