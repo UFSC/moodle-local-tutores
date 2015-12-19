@@ -4,7 +4,7 @@ define('CLI_SCRIPT', true);
 
 require(__DIR__.'/../../../config.php');
 require_once($CFG->libdir.'/clilib.php');
-require_once(__DIR__.'/../lib.php');
+require_once(__DIR__ . '/../lib.php');
 require_once(__DIR__.'/../migratelib.php');
 require_once($CFG->dirroot.'/local/relationship/lib.php');
 require_once($CFG->dirroot.'/local/relationship/locallib.php');
@@ -67,7 +67,7 @@ function local_tutores_cli_list($options) {
     $curso_ufsc = $options['cursoufsc'];
 
     $grupos_tutoria = local_tutores_cli_get_grupos_tutoria($curso_ufsc);
-    $category = get_category_context_from_curso_ufsc($curso_ufsc);
+    $category = local_tutores_get_category_context_from_curso_ufsc($curso_ufsc);
 
     $relationship = local_tutores_cli_get_relationship_tutoria($category->id);
 
@@ -95,7 +95,7 @@ function local_tutores_cli_execute($options) {
 
     cli_heading(get_string('cliheading', 'local_tutores'));
 
-    $category = get_category_context_from_curso_ufsc($curso_ufsc);
+    $category = local_tutores_get_category_context_from_curso_ufsc($curso_ufsc);
     $relationship = local_tutores_cli_get_relationship_tutoria($category->id);
 
     if (!$relationship) {
