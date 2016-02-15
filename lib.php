@@ -450,28 +450,23 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
     static function get_grupos_tutoria($categoria_turma, $tutores = null) {
         global $DB;
         $relationship = self::get_relationship_tutoria($categoria_turma);
+        $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
+        $tutores_where = " ";
 
-        if (is_null($tutores)) {
-            $sql = "SELECT rg.*
-                      FROM {relationship_groups} rg
-                     WHERE rg.relationshipid = :relationshipid
-                  GROUP BY rg.id
-                  ORDER BY name";
-            $params = array('relationshipid' => $relationship->id);
-        } else {
+        if (!is_null($tutores)) {
             $tutores_sql = report_unasus_int_array_to_sql($tutores);
-            $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
-
-            $sql = "SELECT rg.*
-                      FROM {relationship_groups} rg
-                      JOIN {relationship_members} rm
-                        ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
-                     WHERE rg.relationshipid = :relationshipid
-                       AND rm.userid IN ({$tutores_sql})
-                  GROUP BY rg.id
-                  ORDER BY name";
-            $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_tutores->id);
+            $tutores_where = " AND rm.userid IN ({$tutores_sql}) ";
         }
+        $sql = "SELECT rg.*
+                  FROM {relationship_groups} rg
+                  JOIN {relationship_members} rm
+                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+                 WHERE rg.relationshipid = :relationshipid
+               $tutores_where
+              GROUP BY rg.id
+              ORDER BY name";
+
+        $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_tutores->id);
 
         return $DB->get_records_sql($sql, $params);
     }
@@ -591,4 +586,23 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
 
         return $DB->get_records_sql_menu($sql, $params);
     }
+
+    function get_estudantes_grupo_tutoria($categoria_turma, $group_id, $atividades, $class_name, $type)
+    {
+        global $DB;
+        $relationship = self::get_relationship_tutoria($categoria_turma);
+        $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
+
+        /* Query alunos */
+        $query_alunos = query_alunos_relationship();
+        $params = array(
+            'tipo_aluno' => GRUPO_TUTORIA_TIPO_ESTUDANTE,
+            'cohort_relationship_id' => $cohort_estudantes->id,
+            'relationship_id' => $relationship->id,
+            'grupo' => $group_id
+        );
+        $estudantes_grupo_tutoria = $DB->get_records_sql($query_alunos, $params);
+        return $estudantes_grupo_tutoria;
+    }
+
 }
