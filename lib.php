@@ -472,6 +472,53 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
     }
 
     /**
+     * Retorna lista de grupos de tutoria de um determinado curso ufsc
+     *
+     * @param string $categoria_turma
+     * @param array $tutores
+     * @return array
+     */
+    static function get_grupos_tutoria_new($categoria_turma, $grupos_tutoria = null) {
+        global $DB;
+        $relationship = self::get_relationship_tutoria($categoria_turma);
+        $grupos_tutoria_where = " ";
+
+        if (!is_null($grupos_tutoria)) {
+            $grupos_tutoria_sql = report_unasus_int_array_to_sql($grupos_tutoria);
+            $grupos_tutoria_where = " AND rg.id IN ({$grupos_tutoria_sql}) ";
+        }
+        $sql = "SELECT rg.*
+                  FROM {relationship_groups} rg
+                 WHERE rg.relationshipid = :relationshipid
+               $grupos_tutoria_where
+              ORDER BY name";
+
+        $params = array('relationshipid' => $relationship->id);
+
+        return $DB->get_records_sql($sql, $params);
+    }
+
+    /**
+     * Retorna lista de grupos de tutoria de um determinado curso ufsc
+     *
+     * @param string $categoria_turma
+     * @param array $tutores
+     * @return array
+     */
+    static function get_grupos_tutoria_menu($categoria_turma) {
+        global $DB;
+        $relationship = self::get_relationship_tutoria($categoria_turma);
+        $sql = "SELECT rg.id, rg.name AS fullname
+                  FROM {relationship_groups} rg
+                 WHERE rg.relationshipid = :relationshipid
+              ORDER BY name";
+
+        $params = array('relationshipid' => $relationship->id);
+
+        return $DB->get_records_sql_menu($sql, $params);
+    }
+
+    /**
      * Retorna a string que é utilizada no agrupamento por grupos de tutoria
      *
      * O padrão é $nome_do_grupo - Tutor(es) responsaveis
@@ -587,7 +634,7 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
         return $DB->get_records_sql_menu($sql, $params);
     }
 
-    function get_estudantes_grupo_tutoria($categoria_turma, $group_id, $atividades, $class_name, $type)
+    static function get_estudantes_grupo_tutoria($categoria_turma, $group_id)
     {
         global $DB;
         $relationship = self::get_relationship_tutoria($categoria_turma);
