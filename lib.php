@@ -333,6 +333,27 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         return $DB->get_records_sql($sql, $params);
     }
 
+    static function get_grupos_orientacao_new($categoria_turma, $grupos_orientacao = null) {
+        global $DB;
+        $relationship = self::get_relationship_orientacao($categoria_turma);
+
+        $grupos_orientacao_where = " ";
+
+        if (!is_null($grupos_orientacao)) {
+            $grupos_orientacao_sql = report_unasus_int_array_to_sql($grupos_orientacao);
+            $grupos_orientacao_where = " AND rg.id IN ({$grupos_orientacao_sql}) ";
+        }
+        $sql = "SELECT rg.*
+                  FROM {relationship_groups} rg
+                 WHERE rg.relationshipid = :relationshipid
+               $grupos_orientacao_where
+              ORDER BY name";
+
+        $params = array('relationshipid' => $relationship->id);
+
+        return $DB->get_records_sql($sql, $params);
+    }
+
     /**
      * Retorna a string que é utilizada no agrupamento por grupos de orientacao
      *
@@ -411,6 +432,27 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         return $DB->get_records_sql_menu($sql, $params);
     }
 
+    /**
+     * Dado que alimenta a lista do filtro grupos de orientação
+     *
+     * @param $categoria_turma int id da categoria
+     * @return array [id, fullname]
+     */
+    static function get_orientadores_grupos($categoria_turma) {
+        global $DB;
+
+        $relationship = self::get_relationship_orientacao($categoria_turma);
+
+        $sql = "SELECT rg.id,
+                       rg.name AS fullname
+                  FROM {relationship_groups} rg
+                 WHERE (rg.relationshipid=:relationship_id)
+              ORDER BY rg.name";
+
+        $params = array('relationship_id' => $relationship->id);
+
+        return $DB->get_records_sql_menu($sql, $params);
+    }
 }
 
 class local_tutores_grupos_tutoria extends local_tutores_base_group {
