@@ -14,6 +14,8 @@ Este plugin deve ser instalado em "local/tutores"
 
 Permissões
 ----------
+Este plugin necessita que o usuário que terá acesso a este plugin,
+tenha as seguintes capabilities marcadas como *permitir*:
 
-Nenhuma.
+* local/tutores:manage
 
