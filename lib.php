@@ -16,12 +16,12 @@ function local_tutores_extend_settings_navigation(navigation_node $navigation) {
 
         // Se por algum motivo a chave for alterada em uma nova versão do Moodle,
         // Não quebrar o código.
-        if ($category_node) {
-            $category_node->add(
-                    get_string('tutorship_groups', 'local_tutores'),
-                    new moodle_url('/local/tutores/index.php', array('categoryid' => $PAGE->context->instanceid)),
-                    navigation_node::TYPE_SETTING, null, null, new pix_icon('icon', '', 'local_tutores'));
-        }
+//        if ($category_node) {
+//            $category_node->add(
+//                    get_string('tutorship_groups', 'local_tutores'),
+//                    new moodle_url('/local/tutores/index.php', array('categoryid' => $PAGE->context->instanceid)),
+//                    navigation_node::TYPE_SETTING, null, null, new pix_icon('icon', '', 'local_tutores'));
+//        }
     }
 }
 

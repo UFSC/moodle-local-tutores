@@ -64,8 +64,12 @@ class Middleware {
         $moodle_prefix = empty($CFG->prefix) ? $CFG->dbname : "{$CFG->dbname}.{$CFG->prefix}";
 
         // Verifica se o plugin está configurado
-        if (empty($config->dbname) || empty($config->contexto))
-            return false;
+        if (empty($config->dbname) || empty($config->contexto)) {
+            // Se não estiver utiliza a configuração da Unasus de Capacitação, que não utiliza o Middleware
+            // A rotina: ./local/scripts-ufsc/cria_views.php deve ser executada para a criação das views na base local
+            $config->dbname = $CFG->dbname;
+            $config->contexto = "UNASUS_CP";
+        }
 
         // Configura padrões de substituição de nomes de tabelas no SQL
         self::$patterns = array(
