@@ -76,7 +76,7 @@ class Middleware {
             '/\{view_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_' . $config->contexto . '_$1',
             '/\{geral_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_Geral_$1',
             '/\{table_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.$1',
-            '/\{([a-z][a-z0-9_]*)\}/' => $moodle_prefix.'.$1'); // regexp do moodle, precisa ser o útlimo
+            '/\{([a-z][a-z0-9_]*)\}/' => $moodle_prefix.'$1'); // regexp do moodle, precisa ser o útlimo
 
         // Inicializa conexão com a base de dados
         $db = $this->db_init($config);
@@ -107,7 +107,6 @@ class Middleware {
     public function execute($sql, array $params=null) {
         $rawsql = $this->fix_names($sql);
         list($rawsql, $params) = $this->fix_sql_params($rawsql, $params);
-
         return $this->db->Execute($rawsql, $params);
     }
 

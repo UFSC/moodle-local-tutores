@@ -16,6 +16,9 @@ if ($hassiteconfig) {
             $roles[$role->shortname] = $role->localname;
         }
 
+        /**
+        * A configuração de grupos de tutoria são armazenadas na tabela "config" do moodle.
+        */
         $ADMIN->add('users', new admin_category('grupostutoria', get_string('grupos_tutoria', 'local_tutores')));
 
         $settings = new admin_settingpage('grupos_tutoria_settings', get_string('grupos_tutoria_settings', 'local_tutores'));
