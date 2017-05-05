@@ -55,7 +55,7 @@ class Middleware {
 
     public function exist() {
         // executa um select qualquer de uma tabela específica do middleware, para verificar a
-        // existência da conecção com o banco do middleware
+        // existência da conexão com o banco do middleware
         $exist = $this->db->Execute("SELECT count(*) FROM PapeisContextos");
         return ($exist);
     }
