@@ -683,7 +683,7 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
         $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
 
         /* Query alunos */
-        $query_alunos = query_alunos_relationship();
+        $query_alunos = query_alunos_relationship($cohort_estudantes);
         $params = array(
             'tipo_aluno' => GRUPO_TUTORIA_TIPO_ESTUDANTE,
             'cohort_relationship_id' => $cohort_estudantes->id,
