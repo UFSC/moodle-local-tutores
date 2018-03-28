@@ -34,9 +34,21 @@ class local_tutores_base_group {
      * @return array
      */
     static function get_papeis_estudantes() {
-        global $CFG;
 
-        return explode(',', $CFG->local_tutores_student_roles);
+        global $DB;
+
+        $sql = "SELECT value
+                FROM config
+                WHERE name = :local_tutores_student_roles";
+
+        $params = array('local_tutores_student_roles' => 'local_tutores_student_roles');
+
+        $student = $DB->get_record_sql($sql, $params);
+
+        return $student->value;
+//        global $CFG;
+
+//        return explode(',', $CFG->local_tutores_student_roles);
     }
 
     /**
@@ -464,9 +476,20 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
      * @return array
      */
     static function get_papeis_tutores() {
-        global $CFG;
+        global $DB;
 
-        return explode(',', $CFG->local_tutores_tutor_roles);
+        $sql = "SELECT value
+                FROM {config}
+                WHERE name = :local_tutores_tutor_roles";
+
+        $params = array('local_tutores_tutor_roles' => 'local_tutores_tutor_roles');
+
+        $teacher =  $DB->get_record_sql($sql, $params);
+
+        return $teacher->value;
+//        global $CFG;
+//
+//        return explode(',', $CFG->local_tutores_tutor_roles);
     }
 
     /**
@@ -622,6 +645,7 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
         global $DB;
 
         $tutor_role = local_tutores_grupos_tutoria::get_papeis_tutores();
+
         list($sqlfragment, $paramsfragment) = $DB->get_in_or_equal($tutor_role, SQL_PARAMS_NAMED, 'shortname');
 
         $sql = "SELECT rc.*
@@ -631,8 +655,8 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
                  WHERE relationshipid=:relationship_id
                    AND r.shortname {$sqlfragment}";
 
-
         $params = array_merge($paramsfragment, array('relationship_id' => $relationship_id));
+
         $cohort = $DB->get_record_sql($sql, $params);
 
         if (!$cohort) {

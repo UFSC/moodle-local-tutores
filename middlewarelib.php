@@ -78,11 +78,21 @@ class Middleware {
         }
 
         // Configura padrões de substituição de nomes de tabelas no SQL
-        self::$patterns = array(
-            '/\{view_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_' . $config->contexto . '_$1',
-            '/\{geral_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_Geral_$1',
-            '/\{table_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.$1',
-            '/\{([a-z][a-z0-9_]*)\}/' => $moodle_prefix.'.$1'); // regexp do moodle, precisa ser o útlimo
+        if(strpos($moodle_prefix , $CFG->behat_prefix)){
+            //Workaround para aceitação de testes de comportamento behat
+            //(Retirada do ponto na variável $1 no último índice)
+            self::$patterns = array(
+                '/\{view_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_' . $config->contexto . '_$1',
+                '/\{geral_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_Geral_$1',
+                '/\{table_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.$1',
+                '/\{([a-z][a-z0-9_]*)\}/' => $moodle_prefix . '$1'); // regexp do moodle, precisa ser o útlimo
+        }else{
+            self::$patterns = array(
+                '/\{view_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_' . $config->contexto . '_$1',
+                '/\{geral_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.View_Geral_$1',
+                '/\{table_([a-zA-Z][0-9a-zA-Z_]*)\}/i' => $config->dbname . '.$1',
+                '/\{([a-z][a-z0-9_]*)\}/' => $moodle_prefix . '.$1'); // regexp do moodle, precisa ser o útlimo
+        }
 
         // Inicializa conexão com a base de dados
         $db = $this->db_init($config);
@@ -113,7 +123,6 @@ class Middleware {
     public function execute($sql, array $params=null) {
         $rawsql = $this->fix_names($sql);
         list($rawsql, $params) = $this->fix_sql_params($rawsql, $params);
-
         return $this->db->Execute($rawsql, $params);
     }
 
@@ -239,7 +248,12 @@ class Middleware {
         $externaldb = ADONewConnection($CFG->dbtype);
 
         // Considerando os dados de conexão do config.php e apenas alterando o dbname pelas configurações do plugin.
-        $externaldb->Connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass, $config->dbname, true);
+        if(empty($CFG->dboptions['dbport'])) {
+            // Condição necessária caso necessite especificar uma porta do database
+            $externaldb->Connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass, $config->dbname, true);
+        }else {
+            $externaldb->Connect($CFG->dbhost . ":" . $CFG->dboptions['dbport'], $CFG->dbuser, $CFG->dbpass, $config->dbname, true);
+        }
         $externaldb->SetFetchMode(ADODB_FETCH_ASSOC);
         $externaldb->SetCharSet('utf8');
 
