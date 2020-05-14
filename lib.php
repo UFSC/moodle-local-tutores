@@ -301,7 +301,7 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         return self::get_relationship($categoria_turma, 'grupo_orientacao');
     }
 
-    static function get_grupos_orientacao($categoria_turma, $orientadores = null) {
+    static function get_grupos_orientacao_by_userid($categoria_turma, $orientadores = null) {
         global $DB;
         $relationship = self::get_relationship_orientacao($categoria_turma);
 
@@ -489,7 +489,7 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
      * @param array $tutores
      * @return array
      */
-    static function get_grupos_tutoria($categoria_turma, $tutores = null) {
+    static function get_grupos_tutoria_by_userid($categoria_turma, $tutores = null) {
         global $DB;
         $relationship = self::get_relationship_tutoria($categoria_turma);
         $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
