@@ -126,5 +126,24 @@ class categoria {
 
     }
 
+    /**
+     * Recupera o contextid da categoria da turma, para ser utilizada nos relatórios, no path do context
+     * Exemplo: 'AND (context.path like '%/$contexto_turma_ufsc/%' ) AND (context.contextlevel = 70)'
+     *
+     * @param $categoria_turma int
+     * @return bool|mixed
+     */
+    static function contexto_turma_ufsc($categoria_turma) {
+        global $DB;
+
+        $sql = "SELECT id
+                  FROM {context}
+                 WHERE instanceid = (:categoria_turma)
+                   AND contextlevel = :context_level;";
+        $params = array('categoria_turma' => $categoria_turma,'context_level' => CONTEXT_COURSECAT);
+
+        $retorno = $DB->get_field_sql($sql, $params);
+        return $retorno;
+    }
 
 }
