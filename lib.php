@@ -49,17 +49,20 @@ class local_tutores_base_group {
         global $DB;
 
         $relationship = local_tutores_grupos_tutoria::get_relationship_tutoria($categoria_turma);
-        $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
+        // Plural: suporta múltiplos cohorts no papel estudante.
+        $cohorts_estudantes = self::get_relationship_cohorts_estudantes($relationship->id);
+        list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
+            array_keys($cohorts_estudantes), SQL_PARAMS_NAMED, 'cohortid');
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
                   FROM {user} u
                   JOIN {relationship_members} rm
-                    ON (rm.userid=u.id AND rm.relationshipcohortid=:cohort_id)
+                    ON (rm.userid=u.id AND rm.relationshipcohortid {$cohort_in})
                   JOIN {relationship_groups} rg
                     ON (rg.relationshipid=:relationship_id AND rg.id=rm.relationshipgroupid)
               ORDER BY u.firstname";
 
-        $params = array('relationship_id' => $relationship->id, 'cohort_id' => $cohort_estudantes->id);
+        $params = array_merge($cohort_params, array('relationship_id' => $relationship->id));
 
         return $DB->get_records_sql_menu($sql, $params);
     }
@@ -77,42 +80,56 @@ class local_tutores_base_group {
     static function get_responsavel_estudante($relationship, $cohort_responsavel, $student_userid) {
         global $DB;
 
-        $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
+        // Lado estudante: array de relationship_cohorts → IN (...).
+        $cohorts_estudantes = self::get_relationship_cohorts_estudantes($relationship->id);
+        list($cohortest_in, $cohortest_params) = $DB->get_in_or_equal(
+            array_keys($cohorts_estudantes), SQL_PARAMS_NAMED, 'cohortest');
+
+        // Lado responsável (tutor ou orientador): aceita array (multi-cohort) ou
+        // stdClass (legado single-cohort). Normaliza para array de PKs e usa IN.
+        if (is_array($cohort_responsavel)) {
+            $cohort_responsavel_ids = array_keys($cohort_responsavel);
+        } else {
+            $cohort_responsavel_ids = array($cohort_responsavel->id);
+        }
+        list($cohortresp_in, $cohortresp_params) = $DB->get_in_or_equal(
+            $cohort_responsavel_ids, SQL_PARAMS_NAMED, 'cohortresp');
 
         $sql = "SELECT DISTINCT u.id, u.username, CONCAT(firstname,' ',lastname) AS fullname
                   FROM {user} u
                   JOIN {relationship_members} rm
-                    ON (rm.userid=u.id AND rm.relationshipcohortid=:cohort_responsavel)
+                    ON (rm.userid=u.id AND rm.relationshipcohortid {$cohortresp_in})
                   JOIN {relationship_groups} rg
                     ON (rg.relationshipid=:relationship_id1 AND rg.id=rm.relationshipgroupid)
                   JOIN (
                           SELECT DISTINCT rg.*
                             FROM {user} u
                             JOIN {relationship_members} rm
-                              ON (rm.userid=u.id AND rm.relationshipcohortid=:cohort_estudantes)
+                              ON (rm.userid=u.id AND rm.relationshipcohortid {$cohortest_in})
                             JOIN {relationship_groups} rg
                               ON (rg.relationshipid=:relationship_id2 AND rg.id=rm.relationshipgroupid)
                            WHERE u.id=:estudante
                        ) grupo_estudante
                     ON (rg.id=grupo_estudante.id)";
 
-        $params = array(
+        $params = array_merge($cohortest_params, $cohortresp_params, array(
             'relationship_id1' => $relationship->id,
             'relationship_id2' => $relationship->id,
-            'cohort_estudantes' => $cohort_estudantes->id,
-            'cohort_responsavel' => $cohort_responsavel->id,
-            'estudante' => $student_userid);
+            'estudante' => $student_userid));
 
         return $DB->get_record_sql($sql, $params);
     }
 
 
     /**
-     * Retorna o relationship_cohort dos estudantes de um determinado relationship
-     * @param $relationship_id
-     * @return mixed
+     * Retorna TODOS os relationship_cohorts do papel estudante de um determinado relationship.
+     * Suporta a configuração nova de local_relationship onde o mesmo papel pode estar
+     * associado a múltiplos cohorts (um por linha em {relationship_cohorts}).
+     *
+     * @param int $relationship_id
+     * @return array [id => stdClass] indexado pelo id de relationship_cohorts
      */
-    static function get_relationship_cohort_estudantes($relationship_id) {
+    static function get_relationship_cohorts_estudantes($relationship_id) {
         global $DB;
 
         $student_role = self::get_papeis_estudantes();
@@ -127,13 +144,30 @@ class local_tutores_base_group {
                    AND r.shortname {$sqlfragment}";
 
         $params = array_merge($paramsfragment, array('relationship_id' => $relationship_id));
-        $cohort = $DB->get_record_sql($sql, $params);
+        $cohorts = $DB->get_records_sql($sql, $params);
 
-        if (!$cohort) {
+        if (empty($cohorts)) {
             print_error('relationship_cohort_estudantes_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
         }
 
-        return $cohort;
+        return $cohorts;
+    }
+
+    /**
+     * Wrapper retrocompatível: retorna o primeiro relationship_cohort do papel estudante.
+     * Use {@link get_relationship_cohorts_estudantes()} (plural) para suportar múltiplos
+     * cohorts no mesmo papel. Esta versão singular dispara debugging() quando há mais
+     * de um cohort para sinalizar pontos a migrar.
+     *
+     * @param int $relationship_id
+     * @return stdClass
+     */
+    static function get_relationship_cohort_estudantes($relationship_id) {
+        $cohorts = self::get_relationship_cohorts_estudantes($relationship_id);
+        if (count($cohorts) > 1) {
+            debugging('Relationship has multiple cohorts for the estudante role; caller is still using the singular accessor.', DEBUG_DEVELOPER);
+        }
+        return reset($cohorts);
     }
 
     /**
@@ -227,7 +261,10 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
 
         $relationship = self::get_relationship_orientacao($categoria_turma);
 
-        $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
+        // Plural: suporta múltiplos cohorts no papel estudante.
+        $cohorts_estudantes = self::get_relationship_cohorts_estudantes($relationship->id);
+        list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
+            array_keys($cohorts_estudantes), SQL_PARAMS_NAMED, 'cohortid');
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
                   FROM {user} u
@@ -235,10 +272,10 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
                     ON (rm.userid=u.id)
                   JOIN {relationship_groups} rg
                     ON (rg.id=rm.relationshipgroupid)
-                 WHERE rm.relationshipcohortid=:cohort_id AND rg.relationshipid=:relationship_id
+                 WHERE rm.relationshipcohortid {$cohort_in} AND rg.relationshipid=:relationship_id
               ORDER BY u.firstname";
 
-        $params = array('relationship_id' => $relationship->id, 'cohort_id' => $cohort_estudantes->id);
+        $params = array_merge($cohort_params, array('relationship_id' => $relationship->id));
 
         return $DB->get_records_sql_menu($sql, $params);
     }
@@ -256,11 +293,12 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
     }
 
     /**
-     * Retorna o relationship_cohort dos orientadores de um determinado relationship
-     * @param $relationship_id
-     * @return mixed
+     * Retorna TODOS os relationship_cohorts do papel orientador de um determinado relationship.
+     *
+     * @param int $relationship_id
+     * @return array [id => stdClass] indexado pelo id de relationship_cohorts
      */
-    static function get_relationship_cohort_orientadores($relationship_id) {
+    static function get_relationship_cohorts_orientadores($relationship_id) {
         global $DB;
 
         $orientador_role = self::get_papeis_orientadores();
@@ -276,20 +314,34 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
 
 
         $params = array_merge($paramsfragment, array('relationship_id' => $relationship_id));
-        $cohort = $DB->get_record_sql($sql, $params);
+        $cohorts = $DB->get_records_sql($sql, $params);
 
-        if (!$cohort) {
+        if (empty($cohorts)) {
             print_error('relationship_cohort_orientadores_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
         }
 
-        return $cohort;
+        return $cohorts;
+    }
+
+    /**
+     * Wrapper retrocompatível: retorna o primeiro relationship_cohort do papel orientador.
+     * @param int $relationship_id
+     * @return stdClass
+     */
+    static function get_relationship_cohort_orientadores($relationship_id) {
+        $cohorts = self::get_relationship_cohorts_orientadores($relationship_id);
+        if (count($cohorts) > 1) {
+            debugging('Relationship has multiple cohorts for the orientador role; caller is still using the singular accessor.', DEBUG_DEVELOPER);
+        }
+        return reset($cohorts);
     }
 
     static function get_orientador_responsavel_estudante($categoria_turma, $student_userid){
         $relationship = self::get_relationship_orientacao($categoria_turma);
-        $cohort_orientadores = self::get_relationship_cohort_orientadores($relationship->id);
+        // Plural: get_responsavel_estudante aceita array.
+        $cohorts_orientadores = self::get_relationship_cohorts_orientadores($relationship->id);
 
-        return self::get_responsavel_estudante($relationship, $cohort_orientadores, $student_userid);
+        return self::get_responsavel_estudante($relationship, $cohorts_orientadores, $student_userid);
     }
 
     /**
@@ -317,17 +369,20 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         else {
 
             $orientadores_sql = report_unasus_int_array_to_sql($orientadores);
-            $cohort_orientadores = self::get_relationship_cohort_orientadores($relationship->id);
+            // Plural: suporta múltiplos cohorts no papel orientador.
+            $cohorts_orientadores = self::get_relationship_cohorts_orientadores($relationship->id);
+            list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
+                array_keys($cohorts_orientadores), SQL_PARAMS_NAMED, 'cohortid');
 
             $sql = "SELECT rg.*
                       FROM {relationship_groups} rg
                       JOIN {relationship_members} rm
-                        ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+                        ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
                      WHERE rg.relationshipid = :relationshipid
                        AND rm.userid IN ({$orientadores_sql})
                   GROUP BY rg.id
                   ORDER BY name";
-            $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_orientadores->id);
+            $params = array_merge($cohort_params, array('relationshipid' => $relationship->id));
         }
 
         return $DB->get_records_sql($sql, $params);
@@ -367,14 +422,19 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         global $DB;
 
         $relationship = self::get_relationship_orientacao($categoria_turma);
-        $cohort_orientadores = self::get_relationship_cohort_orientadores($relationship->id);
+        // Plural: suporta múltiplos cohorts no papel orientador.
+        $cohorts_orientadores = self::get_relationship_cohorts_orientadores($relationship->id);
+        list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
+            array_keys($cohorts_orientadores), SQL_PARAMS_NAMED, 'cohortid');
 
-        $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_orientadores->id, 'grupo_id' => $id);
+        $params = array_merge($cohort_params, array(
+            'relationshipid' => $relationship->id,
+            'grupo_id' => $id));
 
         $sql = "SELECT rg.*
                   FROM {relationship_groups} rg
              LEFT JOIN {relationship_members} rm
-                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
                  WHERE rg.relationshipid = :relationshipid
                    AND rg.id=:grupo_id
               GROUP BY rg.id
@@ -385,7 +445,7 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         $sql = "SELECT u.id as user_id, CONCAT(u.firstname,' ',u.lastname) as fullname
                   FROM {relationship_groups} rg
              LEFT JOIN {relationship_members} rm
-                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
              LEFT JOIN {user} u
                     ON (u.id=rm.userid)
                  WHERE rg.relationshipid = :relationshipid
@@ -417,17 +477,20 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         global $DB;
 
         $relationship = self::get_relationship_orientacao($categoria_turma);
-        $cohort_orientadores = self::get_relationship_cohort_orientadores($relationship->id);
+        // Plural: suporta múltiplos cohorts no papel orientador.
+        $cohorts_orientadores = self::get_relationship_cohorts_orientadores($relationship->id);
+        list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
+            array_keys($cohorts_orientadores), SQL_PARAMS_NAMED, 'cohortid');
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
                   FROM {user} u
                   JOIN {relationship_members} rm
-                    ON (rm.userid=u.id AND rm.relationshipcohortid=:cohort_id)
+                    ON (rm.userid=u.id AND rm.relationshipcohortid {$cohort_in})
                   JOIN {relationship_groups} rg
                     ON (rg.relationshipid=:relationship_id AND rg.id=rm.relationshipgroupid)
               ORDER BY u.firstname";
 
-        $params = array('relationship_id' => $relationship->id, 'cohort_id' => $cohort_orientadores->id);
+        $params = array_merge($cohort_params, array('relationship_id' => $relationship->id));
 
         return $DB->get_records_sql_menu($sql, $params);
     }
@@ -478,8 +541,9 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
      */
     static function get_tutor_responsavel_estudante($categoria_turma, $student_userid) {
         $relationship = self::get_relationship_tutoria($categoria_turma);
-        $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
-        return self::get_responsavel_estudante($relationship, $cohort_tutores, $student_userid);
+        // Plural: get_responsavel_estudante aceita array.
+        $cohorts_tutores = self::get_relationship_cohorts_tutores($relationship->id);
+        return self::get_responsavel_estudante($relationship, $cohorts_tutores, $student_userid);
     }
 
     /**
@@ -492,9 +556,12 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
     static function get_grupos_tutoria_by_userid($categoria_turma, $tutores = null) {
         global $DB;
         $relationship = self::get_relationship_tutoria($categoria_turma);
-        $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
-        $tutores_where = " ";
+        // Plural: suporta múltiplos cohorts no papel tutor.
+        $cohorts_tutores = self::get_relationship_cohorts_tutores($relationship->id);
+        list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
+            array_keys($cohorts_tutores), SQL_PARAMS_NAMED, 'cohortid');
 
+        $tutores_where = " ";
         if (!is_null($tutores)) {
             $tutores_sql = report_unasus_int_array_to_sql($tutores);
             $tutores_where = " AND rm.userid IN ({$tutores_sql}) ";
@@ -502,13 +569,13 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
         $sql = "SELECT rg.*
                   FROM {relationship_groups} rg
                   JOIN {relationship_members} rm
-                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
                  WHERE rg.relationshipid = :relationshipid
                $tutores_where
               GROUP BY rg.id
               ORDER BY name";
 
-        $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_tutores->id);
+        $params = array_merge($cohort_params, array('relationshipid' => $relationship->id));
 
         return $DB->get_records_sql($sql, $params);
     }
@@ -573,14 +640,19 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
         global $DB;
 
         $relationship = self::get_relationship_tutoria($categoria_turma);
-        $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
+        // Plural: suporta múltiplos cohorts no papel tutor.
+        $cohorts_tutores = self::get_relationship_cohorts_tutores($relationship->id);
+        list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
+            array_keys($cohorts_tutores), SQL_PARAMS_NAMED, 'cohortid');
 
-        $params = array('relationshipid' => $relationship->id, 'cohort_id' => $cohort_tutores->id, 'grupo_id' => $id);
+        $params = array_merge($cohort_params, array(
+            'relationshipid' => $relationship->id,
+            'grupo_id' => $id));
 
         $sql = "SELECT rg.*
                   FROM {relationship_groups} rg
              LEFT JOIN {relationship_members} rm
-                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
                  WHERE rg.relationshipid = :relationshipid
                    AND rg.id=:grupo_id
               GROUP BY rg.id
@@ -591,7 +663,7 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
         $sql = "SELECT u.id as user_id, CONCAT(u.firstname,' ',u.lastname) as fullname
                   FROM {relationship_groups} rg
              LEFT JOIN {relationship_members} rm
-                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid=:cohort_id)
+                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
              LEFT JOIN {user} u
                     ON (u.id=rm.userid)
                  WHERE rg.relationshipid = :relationshipid
@@ -614,11 +686,12 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
     }
 
     /**
-     * Retorna o relationship_cohort dos tutores de um determinado relationship
-     * @param $relationship_id
-     * @return mixed
+     * Retorna TODOS os relationship_cohorts do papel tutor de um determinado relationship.
+     *
+     * @param int $relationship_id
+     * @return array [id => stdClass] indexado pelo id de relationship_cohorts
      */
-    static function get_relationship_cohort_tutores($relationship_id) {
+    static function get_relationship_cohorts_tutores($relationship_id) {
         global $DB;
 
         $tutor_role = local_tutores_grupos_tutoria::get_papeis_tutores();
@@ -633,13 +706,26 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
 
 
         $params = array_merge($paramsfragment, array('relationship_id' => $relationship_id));
-        $cohort = $DB->get_record_sql($sql, $params);
+        $cohorts = $DB->get_records_sql($sql, $params);
 
-        if (!$cohort) {
+        if (empty($cohorts)) {
             print_error('relationship_cohort_tutores_not_available_error', 'local_tutores', '', null, "Relationship: {$relationship_id}");
         }
 
-        return $cohort;
+        return $cohorts;
+    }
+
+    /**
+     * Wrapper retrocompatível: retorna o primeiro relationship_cohort do papel tutor.
+     * @param int $relationship_id
+     * @return stdClass
+     */
+    static function get_relationship_cohort_tutores($relationship_id) {
+        $cohorts = self::get_relationship_cohorts_tutores($relationship_id);
+        if (count($cohorts) > 1) {
+            debugging('Relationship has multiple cohorts for the tutor role; caller is still using the singular accessor.', DEBUG_DEVELOPER);
+        }
+        return reset($cohorts);
     }
 
     /**
@@ -661,17 +747,20 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
         global $DB;
 
         $relationship = self::get_relationship_tutoria($categoria_turma);
-        $cohort_tutores = self::get_relationship_cohort_tutores($relationship->id);
+        // Plural: suporta múltiplos cohorts no papel tutor.
+        $cohorts_tutores = self::get_relationship_cohorts_tutores($relationship->id);
+        list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
+            array_keys($cohorts_tutores), SQL_PARAMS_NAMED, 'cohortid');
 
         $sql = "SELECT DISTINCT u.id, CONCAT(firstname,' ',lastname) AS fullname
                   FROM {user} u
                   JOIN {relationship_members} rm
-                    ON (rm.userid=u.id AND rm.relationshipcohortid=:cohort_id)
+                    ON (rm.userid=u.id AND rm.relationshipcohortid {$cohort_in})
                   JOIN {relationship_groups} rg
                     ON (rg.relationshipid=:relationship_id AND rg.id=rm.relationshipgroupid)
               ORDER BY u.firstname";
 
-        $params = array('relationship_id' => $relationship->id, 'cohort_id' => $cohort_tutores->id);
+        $params = array_merge($cohort_params, array('relationship_id' => $relationship->id));
 
         return $DB->get_records_sql_menu($sql, $params);
     }
@@ -680,13 +769,13 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
     {
         global $DB;
         $relationship = self::get_relationship_tutoria($categoria_turma);
-        $cohort_estudantes = self::get_relationship_cohort_estudantes($relationship->id);
+        // Plural: query_alunos_relationship aceita array e embute o filtro IN.
+        $cohort_estudantes = self::get_relationship_cohorts_estudantes($relationship->id);
 
         /* Query alunos */
         $query_alunos = query_alunos_relationship($cohort_estudantes);
         $params = array(
             'tipo_aluno' => GRUPO_TUTORIA_TIPO_ESTUDANTE,
-            'cohort_relationship_id' => $cohort_estudantes->id,
             'relationship_id' => $relationship->id,
             'grupo' => $group_id
         );
