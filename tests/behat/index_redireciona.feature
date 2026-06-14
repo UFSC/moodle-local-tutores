@@ -23,8 +23,11 @@ Feature: Redirecionamento do index dos grupos de tutoria
       | local/relationship:view | Allow      | teacher | Category     | RAIZTUT   |
 
   Scenario: Gestor autorizado é redirecionado para os grupos do relationship
-    Given a tutoria relationship exists in category "Curso Com Numero"
+    # O nome do relationship é DISTINTO do pluginname ('Grupos de Tutoria'): esse nome
+    # só aparece no cabeçalho da página de grupos (groups.php) APÓS o redirecionamento.
+    # Se o redirect quebrar, o index.php renderiza uma página de erro com o pluginname,
+    # que NÃO contém este texto — logo a asserção falha, como deve.
+    Given a tutoria relationship named "Tutoria Piloto 2026" exists in category "Curso Com Numero"
     And I log in as "gerente"
     And I visit the tutoria index for category "Curso Com Numero"
-    # Caímos na página de grupos do relationship, cujo cabeçalho exibe o nome dele.
-    Then I should see "Grupos de Tutoria"
+    Then I should see "Tutoria Piloto 2026"

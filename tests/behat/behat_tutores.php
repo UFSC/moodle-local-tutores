@@ -29,16 +29,23 @@ class behat_tutores extends behat_base {
     }
 
     /**
-     * Cria um relationship de tutoria (tag grupo_tutoria) na categoria informada.
+     * Cria um relationship de tutoria (tag grupo_tutoria) com o nome informado na
+     * categoria informada.
      *
      * É o mínimo que o index.php precisa para redirecionar: get_relationship_tutoria()
      * apenas localiza o relationship pela tag na categoria, sem exigir cohorts ou
      * membros. Não há gerador de Behat para relationships, então criamos via API.
      *
-     * @Given /^a tutoria relationship exists in category "([^"]*)"$/
+     * O nome é parametrizado de propósito: o teste de redirecionamento deve afirmar
+     * um nome DISTINTO do pluginname ('Grupos de Tutoria'), que o index.php renderiza
+     * como heading mesmo em páginas de erro/acesso-negado — senão a asserção passaria
+     * sem que o redirecionamento de fato ocorresse.
+     *
+     * @Given /^a tutoria relationship named "([^"]*)" exists in category "([^"]*)"$/
+     * @param string $relationshipname
      * @param string $categoryname
      */
-    public function a_tutoria_relationship_exists_in_category($categoryname) {
+    public function a_tutoria_relationship_named_exists_in_category($relationshipname, $categoryname) {
         global $CFG, $DB;
         require_once($CFG->dirroot . '/tag/lib.php');
         require_once($CFG->dirroot . '/local/relationship/lib.php');
@@ -48,7 +55,7 @@ class behat_tutores extends behat_base {
         $context = context_coursecat::instance($categoryid);
         relationship_add_relationship((object) array(
             'contextid' => $context->id,
-            'name' => 'Grupos de Tutoria',
+            'name' => $relationshipname,
             'tags' => array('grupo_tutoria'),
         ));
     }

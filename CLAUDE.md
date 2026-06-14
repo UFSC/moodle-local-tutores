@@ -122,11 +122,31 @@ this gap is the point of the `index.php` `FIXME`. Covered by `categoria_test.php
 two different functions. `curso_ufsc()` (the *curso* category) only ever uses `idnumber`/inscrições —
 it never looks at the relationship tag, so an empty `idnumber` is **not** rescued by the presence of a
 tagged relationship. The category located *by* the `grupo_tutoria`/`grupo_orientacao` tag is the
-**turma** category, via `turma_ufsc($courseid)` (and analogously `get_relationship()` in `lib.php`):
-it returns the category whose context **hosts** a relationship carrying that tag, with **no dependence
-on `idnumber`**. Conceptually curso ⊇ turma, but they are the **same** category when the relationship
-is created directly on the curso category. The `FIXME`'s "new structure" is precisely this
-tag-/category-based `turma_ufsc` path, which dispenses with `curso_ufsc`/`idnumber` entirely.
+**turma** category, via `turma_ufsc($courseid)`: it returns the category whose context **hosts** a
+relationship carrying that tag, with **no dependence on `idnumber`**. Conceptually curso ⊇ turma, but
+they are the **same** category when the relationship is created directly on the curso category. The
+`FIXME`'s "new structure" is precisely this tag-/category-based `turma_ufsc` path, which dispenses
+with `curso_ufsc`/`idnumber` entirely.
+
+`turma_ufsc()` is **not** the same as `get_relationship()`: `turma_ufsc($courseid)` takes a *course*
+and **discovers** the turma category by walking the path + joining `{course}`; `get_relationship(
+$categoria_turma, $tag)` takes an *already-resolved category* and returns the *relationship* in it.
+Covering one does not cover the other.
+
+**The two axes are independent — think of the pair `(curso_ufsc, turma_ufsc)`** (exactly what
+`report_unasus`'s `factory.php` computes in two separate calls). Each is set or `false` on its own:
+
+| state | `curso_ufsc` (idnumber) | `turma_ufsc` (tag) |
+|---|---|---|
+| curso empty + tagged relationship present | `false` | **set** |
+| curso empty + no tagged relationship | `false` | `false` |
+| curso set + no tagged relationship | set | `false` |
+| curso set + tagged relationship (normal) | set | set |
+
+Nuance: `turma_ufsc()` matches **either** tag (`t.name IN ('grupo_orientacao', 'grupo_tutoria')`), so
+a course with only a *grupo_orientacao* relationship (no *grupo_tutoria*) still has a turma category;
+`turma_ufsc` is only `false` when **neither** tag is present in the path. Covered by
+`categoria_turma_test.php` (`curso_ufsc` itself is covered by `categoria_test.php`).
 
 **Who consumes a `false` curso category (the consequence differs by entry point).** When
 `curso_ufsc()` returns `false`, nothing throws — `get_field_sql` uses `IGNORE_MISSING` and the

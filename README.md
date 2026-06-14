@@ -58,15 +58,38 @@ São **duas categorias** e **duas funções** diferentes — a tag do relationsh
   inscrições). Nunca olha a tag do relationship; logo, um `idnumber` vazio **não**
   é "salvo" pela existência de um relationship marcado com `grupo_tutoria` — a
   função retorna `false` mesmo assim.
-* **Categoria da TURMA** — `turma_ufsc($courseid)` (e, analogamente, o
-  `get_relationship()` em `lib.php`): localiza a categoria cujo contexto
-  **hospeda** um relationship com a tag `grupo_tutoria`/`grupo_orientacao`, **sem
-  depender de `idnumber`**.
+* **Categoria da TURMA** — `turma_ufsc($courseid)`: a existência de um relationship
+  com a tag `grupo_tutoria`/`grupo_orientacao` **define** a categoria da turma. A
+  função localiza a categoria cujo contexto **hospeda** esse relationship no path do
+  curso, **sem depender de `idnumber`**.
 
 Conceitualmente curso ⊇ turma, mas são **a mesma** categoria quando o relationship
 é criado direto na categoria do curso. A "nova estrutura" que o `FIXME` quer
 adotar é justamente esse caminho baseado em tag/categoria (`turma_ufsc`), que
 dispensa o `curso_ufsc`/`idnumber`.
+
+`turma_ufsc()` **não** é a mesma coisa que `get_relationship()`: `turma_ufsc($courseid)`
+recebe um *curso* e **descobre** a categoria da turma percorrendo o path + join com
+`{course}`; `get_relationship($categoria_turma, $tag)` recebe uma *categoria já
+resolvida* e devolve o *relationship* dela. Cobrir uma não cobre a outra.
+
+**Os dois eixos são independentes — pense no par `(curso_ufsc, turma_ufsc)`** (é o
+que o `factory.php` do `report_unasus` calcula em duas chamadas separadas). Cada um
+é definido ou `false` por conta própria:
+
+| estado | `curso_ufsc` (idnumber) | `turma_ufsc` (tag) |
+|---|---|---|
+| curso vazio + relationship com tag | `false` | **definida** |
+| curso vazio + sem relationship com tag | `false` | `false` |
+| curso definido + sem relationship com tag | definido | `false` |
+| curso definido + relationship com tag (normal) | definido | definida |
+
+Nuance: `turma_ufsc()` casa com **qualquer uma** das tags (`t.name IN
+('grupo_orientacao', 'grupo_tutoria')`), então um curso só com relationship de
+*orientação* (sem *tutoria*) **ainda** tem categoria de turma; `turma_ufsc` só é
+`false` quando **nenhuma** das duas tags existe no path. Coberto por
+`tests/categoria_turma_test.php` (o `curso_ufsc` em si é coberto por
+`tests/categoria_test.php`).
 
 O que acontece quando o curso não é resolvido (`false`)
 -------------------------------------------------------
