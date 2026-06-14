@@ -4,8 +4,6 @@ $string['addnewgroup'] = 'Criar novo grupo';
 $string['backto_grupos_tutoria'] = 'Voltar a lista de grupos de tutoria';
 $string['bulk_upload_groups'] = 'Carregar lista de participantes';
 $string['cliheading'] = '# Migração de Participantes de Grupos #';
-$string['create_confirmation'] = 'Configurar novo Grupo de Tutoria';
-$string['confirm_relationship_creation'] = 'Você deseja configurar um grupo de tutoria para "{$a}"?';
 $string['curso'] = 'Curso';
 $string['cursos_ufsc'] = 'Cursos UFSC';
 $string['definir_permissoes'] = 'Definir permissões';
@@ -31,6 +29,7 @@ $string['tutores:manage'] = 'Gerenciar grupos de tutoria';
 $string['tutorship_groups'] = 'Grupos de Tutoria';
 
 /* Mensagens de erro */
+$string['curso_ufsc_nao_encontrado_error'] = 'Não é possível habilitar o Grupo de Tutoria neste curso.';
 $string['relationship_cohort_estudantes_not_available_error'] = 'Não foi configurado o Cohort de Estudantes para relacionamento.';
 $string['relationship_cohort_tutores_not_available_error'] = 'Não foi configurado o Cohort de Tutores para relacionamento de tutoria.';
 $string['relationship_grupo_tutoria_not_available_error'] = 'Não foi configurado o Relacionamento de Tutoria.';
