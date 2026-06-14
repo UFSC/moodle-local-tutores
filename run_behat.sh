@@ -49,6 +49,10 @@ SISTEM_NAME="local-$CORE_NAME"
 CONTAINER_NAME="moodle-$SISTEM_NAME"
 SELENIUM_CONTAINER="selenium-chrome-$CORE_NAME"
 SELENIUM_IMAGE="selenium/standalone-chrome:3.141.59-selenium"
+# Porta do HOST publicada para o Selenium (lado esquerdo do -p). A porta interna do
+# container é sempre 4444. Parametrizável via SELENIUM_PORT no .env para permitir rodar
+# vários ambientes em paralelo sem conflito na 4444. Default: 4444.
+SELENIUM_HOST_PORT="${SELENIUM_PORT:-4444}"
 DOCKER_COMPOSE_DIR="/home/$USER/workspace/docker/$DOCKER_VERSION"
 MOODLE_LOCAL_SITE="www/$SISTEM_NAME"
 MOODLE_ROOT_IN_CONTAINER="/home/moodle/$MOODLE_LOCAL_SITE"
@@ -131,6 +135,16 @@ disable_behat_environment() {
 ensure_behat_test_mode_enabled() {
     log "Garantindo que o modo de testes do Behat esteja habilitado..."
     exec_php_as_moodle_for_init "MOODLE_SKIP_COMPOSER_SELF_UPDATE=1 USE_ZEND_ALLOC=0 php -d memory_limit=512M '$MOODLE_ROOT_IN_CONTAINER/admin/tool/behat/cli/util.php' --enable 2>&1"
+}
+
+resolve_behat_yml() {
+    # Localiza o behat.yml real gerado pelo init.php do Moodle. O caminho NÃO é
+    # reconstruível a partir do prefixo: o behat_dataroot vem do config.php (no padrão
+    # UFSC é computado em runtime a partir de getenv('MOODLEUFSC_BEHAT_PREFIX'), logo não
+    # é um literal extraível por grep) e o arquivo pode ficar em behat/ OU em
+    # behatrun/behat/ conforme a versão do Moodle / parallel-run. Por isso procuramos o
+    # arquivo de fato, escopado a este site. Retorna vazio se ainda não existe.
+    exec_as_moodle "find /home/moodle/moodledata -path '*${SISTEM_NAME}*/behat/behat.yml' 2>/dev/null | head -1" 2>/dev/null || true
 }
 
 cleanup() {
@@ -246,7 +260,7 @@ else
                     --name "$SELENIUM_CONTAINER" \
                     --network "$DOCKER_NETWORK" \
                     --shm-size=2g \
-                    -p 4444:4444 \
+                    -p ${SELENIUM_HOST_PORT}:4444 \
                     "$SELENIUM_IMAGE"
             else
                 err "Falha ao iniciar '$SELENIUM_CONTAINER': $START_OUTPUT"
@@ -258,7 +272,7 @@ else
             --name "$SELENIUM_CONTAINER" \
             --network "$DOCKER_NETWORK" \
             --shm-size=2g \
-            -p 4444:4444 \
+            -p ${SELENIUM_HOST_PORT}:4444 \
             "$SELENIUM_IMAGE"
     fi
 
@@ -399,7 +413,7 @@ fi
 # ---------------------------------------------------------------------------
 # 4. Inicializar (ou reinicializar) o ambiente Behat
 # ---------------------------------------------------------------------------
-BEHAT_YML="$BEHAT_DATAROOT/behat/behat.yml"
+BEHAT_YML=$(resolve_behat_yml)
 
 if [ -n "$INIT_FLAG" ]; then
     log "Reinicializando ambiente Behat (--init)..."
@@ -437,7 +451,7 @@ if [ -n "$INIT_FLAG" ]; then
 
     log "Behat reinicializado."
 
-elif ! exec_as_moodle "test -f '$BEHAT_YML'" 2>/dev/null; then
+elif [ -z "$BEHAT_YML" ]; then
     log "Inicializando ambiente Behat pela primeira vez (pode demorar alguns minutos)..."
 
     # Garante permissão de escrita no dirroot para o container criar behat.yml
@@ -450,6 +464,14 @@ elif ! exec_as_moodle "test -f '$BEHAT_YML'" 2>/dev/null; then
 else
     log "Ambiente Behat já inicializado."
 fi
+
+# O caminho real do behat.yml só é conhecido com certeza após o init (um primeiro init
+# pode tê-lo acabado de criar, quando BEHAT_YML ainda estava vazio). Resolve agora.
+if [ -z "$BEHAT_YML" ]; then
+    BEHAT_YML=$(resolve_behat_yml)
+fi
+[ -n "$BEHAT_YML" ] || err "Não foi possível localizar o behat.yml após a inicialização do ambiente Behat."
+log "Usando config Behat: $BEHAT_YML"
 
 # ---------------------------------------------------------------------------
 # 5. Habilitar explicitamente o modo de testes antes da execução
@@ -471,7 +493,8 @@ log "  Título da página: ${DIAG_TITLE:-(sem título / página em branco)}"
 DIAG_STATUS=$(docker exec "$SELENIUM_CONTAINER" bash -c "curl -so /dev/null -w '%{http_code}' --max-time 10 'http://$URL_NAME/'" 2>/dev/null || echo "???")
 log "  HTTP status: $DIAG_STATUS"
 
-BEHAT_CMD="cd '$MOODLE_ROOT_IN_CONTAINER' && vendor/bin/behat --config='$BEHAT_YML' --ansi"
+# Nota: esta versão do Behat (embarcada no Moodle) não aceita --ansi; a cor é cosmética.
+BEHAT_CMD="cd '$MOODLE_ROOT_IN_CONTAINER' && vendor/bin/behat --config='$BEHAT_YML'"
 EXTRA_ARGS_ESCAPED="$(build_escaped_args "${BEHAT_EXTRA_ARGS[@]}")"
 
 if [ -n "$FEATURE_FILE" ]; then
