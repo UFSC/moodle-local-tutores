@@ -330,11 +330,8 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
     }
 
     public function test_grupo_tutoria_to_string_sem_tutor() {
-        // Grupo sem nenhum tutor associado. Documenta o comportamento REAL: o
-        // LEFT JOIN em grupo_tutoria_to_string() sempre devolve uma linha para o
-        // grupo (com tutor nulo), então o ramo `empty($tutores)` "Sem Tutor
-        // Responsável" é, na prática, código morto. O resultado é só o nome do
-        // grupo com um separador pendurado e nenhum nome de tutor.
+        // Grupo sem nenhum tutor associado: o rótulo "Sem Tutor Responsável" deve
+        // aparecer (o JOIN interno faz o grupo vazio devolver zero responsáveis).
         $grupo_vazio = relationship_add_group((object) array(
             'relationshipid' => $this->relationshipid, 'name' => 'Grupo Sem Tutor',
             'userlimit' => 0, 'uniformdistribution' => 0));
@@ -342,8 +339,20 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
         $str = local_tutores_grupos_tutoria::grupo_tutoria_to_string(
             $this->categoria_turma, $grupo_vazio);
         $this->assertContains('Grupo Sem Tutor', $str);
-        $this->assertNotContains('Tânia Tutora', $str);
-        $this->assertNotContains('Tobias Tutor', $str);
+        $this->assertContains('Sem Tutor Responsável', $str);
+    }
+
+    public function test_grupo_tutoria_to_string_lista_todos_os_tutores() {
+        // Grupo com mais de um tutor: todos os nomes devem aparecer (sem GROUP BY
+        // colapsando para um único responsável).
+        $tutor_extra = $this->getDataGenerator()->create_user(
+            array('firstname' => 'Teodoro', 'lastname' => 'Tutor'));
+        relationship_add_member($this->grupo_a, $this->rc_tutor, $tutor_extra->id);
+
+        $str = local_tutores_grupos_tutoria::grupo_tutoria_to_string(
+            $this->categoria_turma, $this->grupo_a);
+        $this->assertContains('Tânia Tutora', $str);
+        $this->assertContains('Teodoro Tutor', $str);
     }
 
     // -----------------------------------------------------------------

@@ -302,11 +302,9 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
     }
 
     public function test_grupo_orientacao_to_string_sem_orientador() {
-        // Grupo sem nenhum orientador associado. Documenta o comportamento REAL: o
-        // LEFT JOIN em grupo_orientacao_to_string() sempre devolve uma linha para o
-        // grupo (com orientador nulo), então o ramo `empty($orientadores)` "Sem
-        // Orientador Responsável" é, na prática, código morto. O resultado é só o
-        // nome do grupo com um separador pendurado e nenhum nome de orientador.
+        // Grupo sem nenhum orientador associado: o rótulo "Sem Orientador
+        // Responsável" deve aparecer (o JOIN interno faz o grupo vazio devolver
+        // zero responsáveis).
         $grupo_vazio = relationship_add_group((object) array(
             'relationshipid' => $this->relationshipid, 'name' => 'Grupo Sem Orientador',
             'userlimit' => 0, 'uniformdistribution' => 0));
@@ -314,7 +312,19 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
         $str = local_tutores_grupo_orientacao::grupo_orientacao_to_string(
             $this->categoria_turma, $grupo_vazio);
         $this->assertContains('Grupo Sem Orientador', $str);
-        $this->assertNotContains('Olga Orientadora', $str);
-        $this->assertNotContains('Otávio Orientador', $str);
+        $this->assertContains('Sem Orientador Responsável', $str);
+    }
+
+    public function test_grupo_orientacao_to_string_lista_todos_os_orientadores() {
+        // Grupo com mais de um orientador: todos os nomes devem aparecer (sem
+        // GROUP BY colapsando para um único responsável).
+        $orientador_extra = $this->getDataGenerator()->create_user(
+            array('firstname' => 'Olavo', 'lastname' => 'Orientador'));
+        relationship_add_member($this->grupo_a, $this->rc_orientador, $orientador_extra->id);
+
+        $str = local_tutores_grupo_orientacao::grupo_orientacao_to_string(
+            $this->categoria_turma, $this->grupo_a);
+        $this->assertContains('Olga Orientadora', $str);
+        $this->assertContains('Olavo Orientador', $str);
     }
 }

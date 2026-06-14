@@ -442,16 +442,18 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
 
         $grupos_orientacao = $DB->get_records_sql($sql, $params);
 
+        // JOIN interno (não LEFT) e sem GROUP BY rg.id: um grupo sem responsáveis
+        // devolve zero linhas — assim o ramo "Sem Orientador Responsável" abaixo
+        // passa a ser alcançável — e um grupo com vários orientadores devolve todos.
         $sql = "SELECT u.id as user_id, CONCAT(u.firstname,' ',u.lastname) as fullname
                   FROM {relationship_groups} rg
-             LEFT JOIN {relationship_members} rm
+                  JOIN {relationship_members} rm
                     ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
-             LEFT JOIN {user} u
+                  JOIN {user} u
                     ON (u.id=rm.userid)
                  WHERE rg.relationshipid = :relationshipid
                    AND rg.id=:grupo_id
-              GROUP BY rg.id
-              ORDER BY name";
+              ORDER BY u.firstname, u.lastname";
 
         $orientadores = $DB->get_records_sql($sql, $params);
 
@@ -660,16 +662,18 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
 
         $grupos_tutoria = $DB->get_records_sql($sql, $params);
 
+        // JOIN interno (não LEFT) e sem GROUP BY rg.id: um grupo sem responsáveis
+        // devolve zero linhas — assim o ramo "Sem Tutor Responsável" abaixo passa
+        // a ser alcançável — e um grupo com vários tutores devolve todos eles.
         $sql = "SELECT u.id as user_id, CONCAT(u.firstname,' ',u.lastname) as fullname
                   FROM {relationship_groups} rg
-             LEFT JOIN {relationship_members} rm
+                  JOIN {relationship_members} rm
                     ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
-             LEFT JOIN {user} u
+                  JOIN {user} u
                     ON (u.id=rm.userid)
                  WHERE rg.relationshipid = :relationshipid
                    AND rg.id=:grupo_id
-              GROUP BY rg.id
-              ORDER BY name";
+              ORDER BY u.firstname, u.lastname";
 
         $tutores = $DB->get_records_sql($sql, $params);
 
