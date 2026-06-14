@@ -143,8 +143,9 @@ resolve_behat_yml() {
     # UFSC é computado em runtime a partir de getenv('MOODLEUFSC_BEHAT_PREFIX'), logo não
     # é um literal extraível por grep) e o arquivo pode ficar em behat/ OU em
     # behatrun/behat/ conforme a versão do Moodle / parallel-run. Por isso procuramos o
-    # arquivo de fato, escopado a este site. Retorna vazio se ainda não existe.
-    exec_as_moodle "find /home/moodle/moodledata -path '*${SISTEM_NAME}*/behat/behat.yml' 2>/dev/null | head -1" 2>/dev/null || true
+    # arquivo de fato, escopado a este site. Se houver mais de um (layout antigo
+    # remanescente, parallel-run), o mais recente (ls -t) vence. Vazio se não existe.
+    exec_as_moodle "find /home/moodle/moodledata -path '*${SISTEM_NAME}*/behat/behat.yml' -exec ls -t {} + 2>/dev/null | head -1" 2>/dev/null || true
 }
 
 cleanup() {
@@ -402,7 +403,7 @@ fi
 # Sem isto, a execução aborta pedindo `php init.php`; aqui forçamos o init sozinhos.
 # (Só faz sentido quando o ambiente já existe; a primeira inicialização é tratada
 # pelo branch "test -f BEHAT_YML" logo abaixo.)
-if [ -z "$INIT_FLAG" ] && exec_as_moodle "test -f '$BEHAT_DATAROOT/behat/behat.yml'" 2>/dev/null; then
+if [ -z "$INIT_FLAG" ] && [ -n "$(resolve_behat_yml)" ]; then
     BEHAT_VERSION_PROBE=$(exec_php_as_moodle_for_init "MOODLE_SKIP_COMPOSER_SELF_UPDATE=1 USE_ZEND_ALLOC=0 php -d memory_limit=512M '$MOODLE_ROOT_IN_CONTAINER/admin/tool/behat/cli/util.php' --enable 2>&1 || true")
     if echo "$BEHAT_VERSION_PROBE" | grep -qiE 'different version|Reinstall Behat'; then
         warn "Ambiente Behat inicializado para outra versão do Moodle. Forçando reinicialização..."
@@ -465,11 +466,9 @@ else
     log "Ambiente Behat já inicializado."
 fi
 
-# O caminho real do behat.yml só é conhecido com certeza após o init (um primeiro init
-# pode tê-lo acabado de criar, quando BEHAT_YML ainda estava vazio). Resolve agora.
-if [ -z "$BEHAT_YML" ]; then
-    BEHAT_YML=$(resolve_behat_yml)
-fi
+# O caminho real do behat.yml só é conhecido com certeza após o init/reinit, que pode
+# tê-lo criado ou movido para outro dataroot/layout. Re-resolve incondicionalmente.
+BEHAT_YML=$(resolve_behat_yml)
 [ -n "$BEHAT_YML" ] || err "Não foi possível localizar o behat.yml após a inicialização do ambiente Behat."
 log "Usando config Behat: $BEHAT_YML"
 
