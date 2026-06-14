@@ -25,8 +25,10 @@ if (empty($curso_ufsc)) {
     print_error('Não é possível habilitar o Grupo de Tutoria neste curso');
 } else {
     // FIXME: é necessário adaptar essa lógica para nova estrutura que não depende de curso_ufsc
-    $category = local_tutores_get_category_context_from_curso_ufsc($curso_ufsc);
-    $relationship = local_tutores_grupos_tutoria::get_relationship_tutoria($category->id);
+    // A função devolve um context_coursecat; get_relationship_tutoria() espera o id da
+    // CATEGORIA (categoria_turma), que é o instanceid do contexto — não o id do contexto.
+    $categorycontext = local_tutores_get_category_context_from_curso_ufsc($curso_ufsc);
+    $relationship = local_tutores_grupos_tutoria::get_relationship_tutoria($categorycontext->instanceid);
 
     if (!$relationship) {
         //echo $renderer->create_confirmation($base_url, $base_url, $curso_ufsc);
