@@ -3,7 +3,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir . '/moodlelib.php');
-require_once($CFG->libdir . '/coursecatlib.php');
 require_once($CFG->dirroot . '/local/tutores/lib.php');
 
 function local_tutores_get_category_context_from_curso_ufsc($curso_ufsc) {
@@ -15,7 +14,7 @@ function local_tutores_get_category_context_from_curso_ufsc($curso_ufsc) {
 
 function local_tutores_get_curso_ufsc_id() {
     $categoryid = required_param('categoryid', PARAM_INT);
-    $category = coursecat::get($categoryid);
+    $category = core_course_category::get($categoryid);
 
     if (!$category->idnumber) {
         return false;
