@@ -1,0 +1,4 @@
+.env
+*.old
+.idea/
+.DS_Store
