@@ -95,6 +95,50 @@ category. Helpers here walk a course's category `path` to find:
 `curso_ufsc ↔ category` translation; note the `FIXME` in `index.php` flagging that the old
 `curso_ufsc`-based flow still needs migrating to the category-based structure.
 
+#### What an empty `idnumber` implies (resolution behaviour)
+
+`idnumber = "curso_<N>"` is just a **marker** that labels a category as the "curso UFSC". An empty
+`idnumber` means *that category is not a curso marker* — there is **no fallback** that elects a
+default category; the routines simply fail to resolve and return `false`. What differs between the
+three (inconsistent) resolution routines is *how far up the tree* each looks for the marker:
+
+- `local_tutores\categoria::curso_ufsc($courseid)` (preferred) — scans **every** category in the
+  course's path and returns the ancestor whose `idnumber LIKE 'curso_%'` (so the curso need **not**
+  be the root). If no category in the whole path matches → `false`. **Exception:** when
+  `local_inscricoes` is installed (`class_exists('local_inscricoes\inscricao_ufsc')`), this branch
+  ignores `idnumber` entirely and locates the curso by the enabled inscription activity
+  (`inscricoes_activities.enable = 1`) in the path — so an empty `idnumber` is irrelevant there.
+- `local_tutores_base_group::get_curso_ufsc_id($courseid)` (legacy, `lib.php`) — climbs to the
+  **root** (level-1) category and strips `curso_` from *its* `idnumber`; empty/non-`curso_` root → `false`.
+- `local_tutores_get_curso_ufsc_id()` (`locallib.php`, used by `index.php`) — checks **only the exact
+  category** passed in `categoryid`, never climbing; empty `idnumber` → `false`, which surfaces in
+  `index.php` as `print_error('Não é possível habilitar o Grupo de Tutoria neste curso')`.
+
+Net divergence: the new helper accepts the `curso_<N>` marker on **any ancestor** of the path, while
+the legacy helpers require it on the **root** (or on the exact category, for `index.php`). Eliminating
+this gap is the point of the `index.php` `FIXME`. Covered by `categoria_test.php`.
+
+**Curso vs. turma — the `grupo_tutoria` tag does NOT resolve the curso.** Two different categories,
+two different functions. `curso_ufsc()` (the *curso* category) only ever uses `idnumber`/inscrições —
+it never looks at the relationship tag, so an empty `idnumber` is **not** rescued by the presence of a
+tagged relationship. The category located *by* the `grupo_tutoria`/`grupo_orientacao` tag is the
+**turma** category, via `turma_ufsc($courseid)` (and analogously `get_relationship()` in `lib.php`):
+it returns the category whose context **hosts** a relationship carrying that tag, with **no dependence
+on `idnumber`**. Conceptually curso ⊇ turma, but they are the **same** category when the relationship
+is created directly on the curso category. The `FIXME`'s "new structure" is precisely this
+tag-/category-based `turma_ufsc` path, which dispenses with `curso_ufsc`/`idnumber` entirely.
+
+**Who consumes a `false` curso category (the consequence differs by entry point).** When
+`curso_ufsc()` returns `false`, nothing throws — `get_field_sql` uses `IGNORE_MISSING` and the
+consumer's property is even typed `bool|string`:
+- `report_unasus` (`factory.php`) **degrades gracefully**. `categoria_turma_ufsc` is resolved
+  *separately* via `turma_ufsc()` (tag-based), so the report's main pipeline keeps working. The only
+  fallout: `categoria_curso_ufsc` feeds `report_unasus_get_nomes_cohorts()`, whose `cc.path LIKE
+  '%/<false>'` interpolates to `'%/'`/`'%//%'` (matching nothing) → the **cohort filter dropdown comes
+  up empty**, silently, with no error.
+- `index.php` (via the legacy `local_tutores_get_curso_ufsc_id()`) does the opposite: `false` →
+  `print_error('Não é possível habilitar o Grupo de Tutoria neste curso')`, a **hard error page**.
+
 ### Middleware (`middlewarelib.php`)
 
 `Middleware` is a **singleton** wrapping an ADODB connection to the external UFSC "middleware"
