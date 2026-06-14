@@ -55,18 +55,15 @@ class local_tutores_categoria_turma_testcase extends advanced_testcase {
     }
 
     /**
-     * Cria um relationship com a tag informada no contexto da categoria e consome o
-     * debugging() legado que tag_set()/tag_assign() dispara (component/contextid).
+     * Cria um relationship com a tag informada no contexto da categoria.
      */
     protected function add_tagged_relationship($categoryid, $name, $tag) {
         $context = context_coursecat::instance($categoryid);
-        $id = relationship_add_relationship((object) array(
+        return relationship_add_relationship((object) array(
             'contextid' => $context->id,
             'name' => $name,
             'tags' => array($tag),
         ));
-        $this->assertDebuggingCalled();
-        return $id;
     }
 
     protected function course_in_category($categoryid) {

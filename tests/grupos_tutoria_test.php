@@ -19,10 +19,14 @@
  *
  * Cobre a lógica auto-contida do plugin: localização do relationship por tag,
  * accessors plurais de relationship_cohorts, listagens de estudantes/tutores,
- * "tutor responsável" e formatação. NÃO cobre as funções que dependem de
- * report_unasus (get_estudantes_grupo_tutoria e os caminhos com filtro de
- * *_by_userid / *_new) — essa superfície fica intencionalmente de fora para
- * manter os testes isolados deste componente.
+ * "tutor responsável" e formatação. Cobre também os caminhos COM filtro de
+ * get_grupos_tutoria_by_userid / _new (que dependem do helper trivial
+ * report_unasus_int_array_to_sql, carregado sob demanda).
+ *
+ * get_estudantes_grupo_tutoria() fica FORA: ela delega a query_alunos_relationship()
+ * do report_unasus, que constrói report_unasus_factory::singleton() a partir dos
+ * params de request ('relatorio'/'course') e exige estudantes matriculados — é a
+ * máquina de relatórios acoplada ao request, não lógica deste componente.
  *
  * @package    local_tutores
  * @copyright  2026 UFSC
@@ -143,13 +147,6 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
 
     /**
      * Cria um relationship com a tag informada.
-     *
-     * relationship_add_relationship() chama o tag_set()/tag_assign() legado, que
-     * dispara um debugging() ("você deveria passar component/contextid"). Quando
-     * isso ocorre dentro do setUp() o aviso não é capturado no buffer assertável do
-     * PHPUnit (só é impresso), então não quebra os testes. Já quando este helper é
-     * chamado no CORPO de um teste, o chamador precisa consumir o debugging com
-     * assertDebuggingCalled()/assertDebuggingCalledCount() antes de prosseguir.
      */
     protected function create_tagged_relationship($contextid, $name, $tag) {
         return relationship_add_relationship((object) array(
@@ -189,9 +186,6 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
             $filhactx = context_coursecat::instance($filha->id);
             $this->create_tagged_relationship($filhactx->id, $nome, 'grupo_tutoria');
         }
-        // Consome o debugging legado de tag_set() das duas criações no corpo do teste.
-        $this->assertCount(2, $this->getDebuggingMessages());
-        $this->resetDebugging();
 
         $this->setExpectedException('moodle_exception');
         local_tutores_grupos_tutoria::get_relationship_tutoria($pai->id);
@@ -252,8 +246,6 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
     public function test_get_relationship_cohorts_tutores_sem_cohort_dispara_erro() {
         // Relationship novo, sem nenhum cohort de tutor.
         $rid = $this->create_tagged_relationship($this->catcontext->id, 'Vazio', 'grupo_tutoria');
-        // Consome o debugging legado de tag_set() da criação no corpo do teste.
-        $this->assertDebuggingCalled();
         $this->setExpectedException('moodle_exception');
         local_tutores_grupos_tutoria::get_relationship_cohorts_tutores($rid);
     }
@@ -380,5 +372,61 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
         $course = $gen->create_course(array('category' => $cat->id));
 
         $this->assertFalse(local_tutores_base_group::get_curso_ufsc_id($course->id));
+    }
+
+    // -----------------------------------------------------------------
+    // Filtros de grupos. O caminho COM filtro depende de
+    // report_unasus_int_array_to_sql() (dependência de runtime não declarada);
+    // o caminho SEM filtro não depende e roda sempre.
+    // -----------------------------------------------------------------
+
+    /**
+     * Carrega o helper report_unasus_int_array_to_sql() ou pula o teste se o
+     * report_unasus não estiver disponível neste ambiente.
+     */
+    protected function require_report_unasus_helpers() {
+        global $CFG;
+        if (!function_exists('report_unasus_int_array_to_sql')) {
+            $f = $CFG->dirroot . '/report/unasus/locallib.php';
+            if (file_exists($f)) {
+                require_once($f);
+            }
+        }
+        if (!function_exists('report_unasus_int_array_to_sql')) {
+            $this->markTestSkipped('report_unasus indisponível; o caminho com filtro depende de report_unasus_int_array_to_sql().');
+        }
+    }
+
+    public function test_get_grupos_tutoria_by_userid_sem_filtro_retorna_grupos_com_tutor() {
+        $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_by_userid($this->categoria_turma);
+        $this->assertCount(2, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+        $this->assertArrayHasKey($this->grupo_b, $grupos);
+    }
+
+    public function test_get_grupos_tutoria_by_userid_filtra_por_tutor() {
+        $this->require_report_unasus_helpers();
+        // tutor_a só é membro do Grupo A.
+        $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_by_userid(
+            $this->categoria_turma, array($this->tutor_a->id));
+        $this->assertCount(1, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+        $this->assertArrayNotHasKey($this->grupo_b, $grupos);
+    }
+
+    public function test_get_grupos_tutoria_new_sem_filtro_retorna_todos() {
+        $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_new($this->categoria_turma);
+        $this->assertCount(2, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+        $this->assertArrayHasKey($this->grupo_b, $grupos);
+    }
+
+    public function test_get_grupos_tutoria_new_filtra_por_grupo() {
+        $this->require_report_unasus_helpers();
+        $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_new(
+            $this->categoria_turma, array($this->grupo_a));
+        $this->assertCount(1, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+        $this->assertArrayNotHasKey($this->grupo_b, $grupos);
     }
 }

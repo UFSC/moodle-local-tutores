@@ -20,8 +20,9 @@
  * Espelha grupos_tutoria_test.php para o lado orientador. Cobre a lógica
  * auto-contida: localização do relationship pela tag grupo_orientacao, accessors
  * plurais de relationship_cohorts do papel orientador, listagens, "orientador
- * responsável" e formatação. NÃO cobre as funções que dependem de report_unasus
- * (caminhos com filtro de get_grupos_orientacao_by_userid / _new).
+ * responsável" e formatação. Cobre também os caminhos COM filtro de
+ * get_grupos_orientacao_by_userid / _new (que dependem do helper trivial
+ * report_unasus_int_array_to_sql, carregado sob demanda).
  *
  * @package    local_tutores
  * @copyright  2026 UFSC
@@ -141,10 +142,7 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
     }
 
     /**
-     * Cria um relationship com a tag informada. Ver nota em grupos_tutoria_test.php:
-     * relationship_add_relationship() dispara um debugging() legado via tag_set(); no
-     * setUp() o aviso não é capturado no buffer assertável (só impresso). Quando este
-     * helper é chamado no CORPO de um teste, o chamador deve consumir o debugging.
+     * Cria um relationship com a tag informada.
      */
     protected function create_tagged_relationship($contextid, $name, $tag) {
         return relationship_add_relationship((object) array(
@@ -181,9 +179,6 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
             $filhactx = context_coursecat::instance($filha->id);
             $this->create_tagged_relationship($filhactx->id, $nome, 'grupo_orientacao');
         }
-        // Consome o debugging legado de tag_set() das duas criações no corpo do teste.
-        $this->assertCount(2, $this->getDebuggingMessages());
-        $this->resetDebugging();
 
         $this->setExpectedException('moodle_exception');
         local_tutores_grupo_orientacao::get_relationship_orientacao($pai->id);
@@ -236,8 +231,6 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
     public function test_get_relationship_cohorts_orientadores_sem_cohort_dispara_erro() {
         // Relationship novo, sem nenhum cohort de orientador.
         $rid = $this->create_tagged_relationship($this->catcontext->id, 'Vazio', 'grupo_orientacao');
-        // Consome o debugging legado de tag_set() da criação no corpo do teste.
-        $this->assertDebuggingCalled();
         $this->setExpectedException('moodle_exception');
         local_tutores_grupo_orientacao::get_relationship_cohorts_orientadores($rid);
     }
@@ -326,5 +319,60 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
             $this->categoria_turma, $this->grupo_a);
         $this->assertContains('Olga Orientadora', $str);
         $this->assertContains('Olavo Orientador', $str);
+    }
+
+    // -----------------------------------------------------------------
+    // Filtros de grupos. O caminho COM filtro depende de
+    // report_unasus_int_array_to_sql(); o caminho SEM filtro não depende.
+    // -----------------------------------------------------------------
+
+    /**
+     * Carrega o helper report_unasus_int_array_to_sql() ou pula o teste se o
+     * report_unasus não estiver disponível neste ambiente.
+     */
+    protected function require_report_unasus_helpers() {
+        global $CFG;
+        if (!function_exists('report_unasus_int_array_to_sql')) {
+            $f = $CFG->dirroot . '/report/unasus/locallib.php';
+            if (file_exists($f)) {
+                require_once($f);
+            }
+        }
+        if (!function_exists('report_unasus_int_array_to_sql')) {
+            $this->markTestSkipped('report_unasus indisponível; o caminho com filtro depende de report_unasus_int_array_to_sql().');
+        }
+    }
+
+    public function test_get_grupos_orientacao_by_userid_sem_filtro_retorna_todos() {
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid($this->categoria_turma);
+        $this->assertCount(2, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+        $this->assertArrayHasKey($this->grupo_b, $grupos);
+    }
+
+    public function test_get_grupos_orientacao_by_userid_filtra_por_orientador() {
+        $this->require_report_unasus_helpers();
+        // orientador_a só é membro do Grupo A.
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma, array($this->orientador_a->id));
+        $this->assertCount(1, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+        $this->assertArrayNotHasKey($this->grupo_b, $grupos);
+    }
+
+    public function test_get_grupos_orientacao_new_sem_filtro_retorna_todos() {
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_new($this->categoria_turma);
+        $this->assertCount(2, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+        $this->assertArrayHasKey($this->grupo_b, $grupos);
+    }
+
+    public function test_get_grupos_orientacao_new_filtra_por_grupo() {
+        $this->require_report_unasus_helpers();
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_new(
+            $this->categoria_turma, array($this->grupo_a));
+        $this->assertCount(1, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+        $this->assertArrayNotHasKey($this->grupo_b, $grupos);
     }
 }
