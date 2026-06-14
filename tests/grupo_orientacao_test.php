@@ -164,7 +164,7 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
 
     public function test_get_relationship_tag_inexistente_dispara_erro() {
         // Não há relationship com a tag grupo_tutoria nesta categoria.
-        $this->setExpectedException('moodle_exception');
+        $this->expectException('moodle_exception');
         local_tutores_base_group::get_relationship($this->categoria_turma, 'grupo_tutoria');
     }
 
@@ -180,7 +180,7 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
             $this->create_tagged_relationship($filhactx->id, $nome, 'grupo_orientacao');
         }
 
-        $this->setExpectedException('moodle_exception');
+        $this->expectException('moodle_exception');
         local_tutores_grupo_orientacao::get_relationship_orientacao($pai->id);
     }
 
@@ -231,7 +231,7 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
     public function test_get_relationship_cohorts_orientadores_sem_cohort_dispara_erro() {
         // Relationship novo, sem nenhum cohort de orientador.
         $rid = $this->create_tagged_relationship($this->catcontext->id, 'Vazio', 'grupo_orientacao');
-        $this->setExpectedException('moodle_exception');
+        $this->expectException('moodle_exception');
         local_tutores_grupo_orientacao::get_relationship_cohorts_orientadores($rid);
     }
 
