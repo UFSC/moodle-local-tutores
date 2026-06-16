@@ -1,0 +1,4 @@
+# Cascade de branches/mirrors deste projeto. Veja `moodle-cascade --help`.
+# Upstream único no GitHub, exposto por dois remotes para o MESMO repo:
+# origin (HTTPS) e stream (SSH). Um push basta; usamos stream (SSH, sem prompt).
+remotes = stream
