@@ -147,7 +147,7 @@ class local_tutores_base_group {
         $cohorts = $DB->get_records_sql($sql, $params);
 
         if (empty($cohorts)) {
-            print_error('relationship_cohort_estudantes_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
+            throw new moodle_exception('relationship_cohort_estudantes_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
         }
 
         return $cohorts;
@@ -242,12 +242,12 @@ class local_tutores_base_group {
 
         // Evita o caso de um curso que retorne com mais de um relationship
         if (count($relationship) > 1) {
-            print_error("relationship_{$tag_name}_too_many_available_error", 'local_tutores');
+            throw new moodle_exception("relationship_{$tag_name}_too_many_available_error", 'local_tutores');
         }
 
         $relationship = reset($relationship);
         if (!$relationship) {
-            print_error("relationship_{$tag_name}_not_available_error", 'local_tutores');
+            throw new moodle_exception("relationship_{$tag_name}_not_available_error", 'local_tutores');
         }
 
         return $relationship;
@@ -317,7 +317,7 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         $cohorts = $DB->get_records_sql($sql, $params);
 
         if (empty($cohorts)) {
-            print_error('relationship_cohort_orientadores_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
+            throw new moodle_exception('relationship_cohort_orientadores_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
         }
 
         return $cohorts;
@@ -713,7 +713,7 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
         $cohorts = $DB->get_records_sql($sql, $params);
 
         if (empty($cohorts)) {
-            print_error('relationship_cohort_tutores_not_available_error', 'local_tutores', '', null, "Relationship: {$relationship_id}");
+            throw new moodle_exception('relationship_cohort_tutores_not_available_error', 'local_tutores', '', null, "Relationship: {$relationship_id}");
         }
 
         return $cohorts;

@@ -148,8 +148,8 @@ A relationship is identified by a **tag** on it:
 
 `get_relationship($categoria_turma, $tag_name)` in `lib.php` is the lookup hub: given a course
 category id and a tag, it walks `tag → tag_instance → relationship → context → course_categories`
-(matching the category in the path) to find the one relationship. It `print_error`s if zero or more
-than one match.
+(matching the category in the path) to find the one relationship. It throws a `moodle_exception` if
+zero or more than one match.
 
 ### Roles are configurable, not hardcoded
 
@@ -212,7 +212,7 @@ three (inconsistent) resolution routines is *how far up the tree* each looks for
   **root** (level-1) category and strips `curso_` from *its* `idnumber`; empty/non-`curso_` root → `false`.
 - `local_tutores_get_curso_ufsc_id()` (`locallib.php`, used by `index.php`) — checks **only the exact
   category** passed in `categoryid`, never climbing; empty `idnumber` → `false`, which surfaces in
-  `index.php` as `print_error('Não é possível habilitar o Grupo de Tutoria neste curso')`.
+  `index.php` as `throw new moodle_exception('curso_ufsc_nao_encontrado_error', 'local_tutores')`.
 
 Net divergence: the new helper accepts the `curso_<N>` marker on **any ancestor** of the path, while
 the legacy helpers require it on the **root** (or on the exact category, for `index.php`). Eliminating
@@ -257,7 +257,7 @@ consumer's property is even typed `bool|string`:
   '%/<false>'` interpolates to `'%/'`/`'%//%'` (matching nothing) → the **cohort filter dropdown comes
   up empty**, silently, with no error.
 - `index.php` (via the legacy `local_tutores_get_curso_ufsc_id()`) does the opposite: `false` →
-  `print_error('Não é possível habilitar o Grupo de Tutoria neste curso')`, a **hard error page**.
+  `throw new moodle_exception('curso_ufsc_nao_encontrado_error', 'local_tutores')`, a **hard error page**.
 
 ### Middleware (`middlewarelib.php`)
 
@@ -279,7 +279,7 @@ node is currently commented out.
 
 - Comments, identifiers, and user strings are in **Portuguese** — match the surrounding language.
 - User-facing strings go through `get_string(..., 'local_tutores')`; add keys to
-  `lang/en/local_tutores.php`. Some `print_error` calls intentionally reference the `report_unasus`
-  string component, not this one.
+  `lang/en/local_tutores.php`. Some `moodle_exception` throws intentionally reference the
+  `report_unasus` string component, not this one.
 - Build SQL `IN` lists with `$DB->get_in_or_equal(..., SQL_PARAMS_NAMED, ...)` and merge the
   returned params — this is the established pattern for the multi-cohort queries.
