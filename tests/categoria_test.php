@@ -39,7 +39,7 @@ defined('MOODLE_INTERNAL') || die();
  */
 class local_tutores_categoria_testcase extends advanced_testcase {
 
-    protected function setUp() {
+    protected function setUp(): void {
         $this->resetAfterTest();
 
         // O branch de idnumber só roda quando o local_inscricoes não expõe esta

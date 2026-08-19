@@ -50,7 +50,7 @@ require_once($CFG->dirroot . '/local/relationship/lib.php');
  */
 class local_tutores_categoria_turma_testcase extends advanced_testcase {
 
-    protected function setUp() {
+    protected function setUp(): void {
         $this->resetAfterTest();
     }
 

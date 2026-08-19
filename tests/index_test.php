@@ -38,6 +38,6 @@ class local_tutores_index_testcase extends advanced_testcase {
         $s = get_string('curso_ufsc_nao_encontrado_error', 'local_tutores');
         $this->assertNotEmpty($s);
         // get_string devolve "[[chave]]" quando a chave não existe.
-        $this->assertNotContains('[[', $s);
+        $this->assertStringNotContainsString('[[', $s);
     }
 }

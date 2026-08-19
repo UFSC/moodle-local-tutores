@@ -82,7 +82,7 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
     /** @var stdClass estudante no grupo B. */
     protected $estudante_b1;
 
-    protected function setUp() {
+    protected function setUp(): void {
         global $DB;
 
         $this->resetAfterTest();
@@ -317,8 +317,8 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
     public function test_grupo_tutoria_to_string_inclui_nome_e_tutor() {
         $str = local_tutores_grupos_tutoria::grupo_tutoria_to_string(
             $this->categoria_turma, $this->grupo_a);
-        $this->assertContains('Grupo A', $str);
-        $this->assertContains('Tânia Tutora', $str);
+        $this->assertStringContainsString('Grupo A', $str);
+        $this->assertStringContainsString('Tânia Tutora', $str);
     }
 
     public function test_grupo_tutoria_to_string_sem_tutor() {
@@ -330,8 +330,8 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
 
         $str = local_tutores_grupos_tutoria::grupo_tutoria_to_string(
             $this->categoria_turma, $grupo_vazio);
-        $this->assertContains('Grupo Sem Tutor', $str);
-        $this->assertContains('Sem Tutor Responsável', $str);
+        $this->assertStringContainsString('Grupo Sem Tutor', $str);
+        $this->assertStringContainsString('Sem Tutor Responsável', $str);
     }
 
     public function test_grupo_tutoria_to_string_lista_todos_os_tutores() {
@@ -343,8 +343,8 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
 
         $str = local_tutores_grupos_tutoria::grupo_tutoria_to_string(
             $this->categoria_turma, $this->grupo_a);
-        $this->assertContains('Tânia Tutora', $str);
-        $this->assertContains('Teodoro Tutor', $str);
+        $this->assertStringContainsString('Tânia Tutora', $str);
+        $this->assertStringContainsString('Teodoro Tutor', $str);
     }
 
     // -----------------------------------------------------------------

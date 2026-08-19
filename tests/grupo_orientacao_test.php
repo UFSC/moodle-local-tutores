@@ -78,7 +78,7 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
     /** @var stdClass estudante no grupo B. */
     protected $estudante_b1;
 
-    protected function setUp() {
+    protected function setUp(): void {
         global $DB;
 
         $this->resetAfterTest();
@@ -327,8 +327,8 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
     public function test_grupo_orientacao_to_string_inclui_nome_e_orientador() {
         $str = local_tutores_grupo_orientacao::grupo_orientacao_to_string(
             $this->categoria_turma, $this->grupo_a);
-        $this->assertContains('Grupo A', $str);
-        $this->assertContains('Olga Orientadora', $str);
+        $this->assertStringContainsString('Grupo A', $str);
+        $this->assertStringContainsString('Olga Orientadora', $str);
     }
 
     public function test_grupo_orientacao_to_string_sem_orientador() {
@@ -341,8 +341,8 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
 
         $str = local_tutores_grupo_orientacao::grupo_orientacao_to_string(
             $this->categoria_turma, $grupo_vazio);
-        $this->assertContains('Grupo Sem Orientador', $str);
-        $this->assertContains('Sem Orientador Responsável', $str);
+        $this->assertStringContainsString('Grupo Sem Orientador', $str);
+        $this->assertStringContainsString('Sem Orientador Responsável', $str);
     }
 
     public function test_grupo_orientacao_to_string_lista_todos_os_orientadores() {
@@ -354,8 +354,8 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
 
         $str = local_tutores_grupo_orientacao::grupo_orientacao_to_string(
             $this->categoria_turma, $this->grupo_a);
-        $this->assertContains('Olga Orientadora', $str);
-        $this->assertContains('Olavo Orientador', $str);
+        $this->assertStringContainsString('Olga Orientadora', $str);
+        $this->assertStringContainsString('Olavo Orientador', $str);
     }
 
     // -----------------------------------------------------------------
