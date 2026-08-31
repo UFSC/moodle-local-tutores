@@ -22,6 +22,23 @@ class Middleware {
     public $lasterror;
 
     /**
+     * Nome da base do middleware e contexto usados na substituicao de nomes de tabelas.
+     *
+     * Declarados explicitamente porque a criacao de propriedade dinamica e' deprecated
+     * desde o PHP 8.2 — no modo DEVELOPER isso vira excecao e derruba quem usa o
+     * Middleware, como os relatorios do report_unasus.
+     *
+     * @var string
+     */
+    public $dbname;
+
+    /** @var string */
+    public $contexto;
+
+    /** @var int contador usado por _fix_sql_params_dollar_callback() */
+    public $fix_sql_params_i;
+
+    /**
      * Padrões de busca e substituição de nomes de tabelas.
      * @var array chave sendo a expressão regular de pesquisa e valor sendo a string de substituição
      */
@@ -54,6 +71,14 @@ class Middleware {
     }
 
     public function exist() {
+        // Sem conexao nao ha' middleware. O plugin trata isso como situacao normal
+        // (ver o fallback no construtor): quem nao usa middleware simplesmente nao
+        // tem a base. Retornar false aqui evita chamar Execute() sobre uma conexao
+        // invalida, que estourava dentro do ADOdb.
+        if (empty($this->db)) {
+            return false;
+        }
+
         // executa um select qualquer de uma tabela específica do middleware, para verificar a
         // existência da conexão com o banco do middleware
         $exist = $this->db->Execute("SELECT count(*) FROM PapeisContextos");
@@ -239,8 +264,30 @@ class Middleware {
         // Connect to the external database (forcing new connection)
         $externaldb = ADONewConnection($CFG->dbtype);
 
+        // O Moodle guarda a porta em $CFG->dboptions['dbport'], nao em $CFG->dbhost.
+        // Sem repassa-la o ADOdb assume 3306 e o Connect() falha em silencio, devolvendo
+        // uma conexao false — o erro so' aparecia bem longe daqui, como
+        // "mysqli_query(): Argument #1 ($mysql) must be of type mysqli, false given".
+        if (!empty($CFG->dboptions['dbport'])) {
+            $externaldb->port = (int) $CFG->dboptions['dbport'];
+        }
+
         // Considerando os dados de conexão do config.php e apenas alterando o dbname pelas configurações do plugin.
-        $externaldb->Connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass, $config->dbname, true);
+        $conectou = $externaldb->Connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass, $config->dbname, true);
+
+        // Connect() devolve false em silencio quando nao conecta, e o objeto segue
+        // utilizavel com _connectionID = false. Quem chamasse Execute() adiante recebia
+        // "mysqli_query(): Argument #1 ($mysql) must be of type mysqli, false given" —
+        // um problema de configuracao disfarcado de erro de tipo dentro do ADOdb.
+        // Sem senha na mensagem, de proposito.
+        if (!$conectou) {
+            $porta = empty($CFG->dboptions['dbport']) ? '(padrao)' : $CFG->dboptions['dbport'];
+            debugging("Middleware: nao foi possivel conectar ao banco '{$config->dbname}' " .
+                      "em {$CFG->dbhost}:{$porta} com o usuario '{$CFG->dbuser}'. " .
+                      "O middleware sera' tratado como ausente.", DEBUG_NORMAL);
+            return false;
+        }
+
         $externaldb->SetFetchMode(ADODB_FETCH_ASSOC);
         $externaldb->SetCharSet('utf8');
 
