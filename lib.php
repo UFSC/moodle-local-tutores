@@ -147,7 +147,10 @@ class local_tutores_base_group {
         $cohorts = $DB->get_records_sql($sql, $params);
 
         if (empty($cohorts)) {
-            throw new moodle_exception('relationship_cohort_estudantes_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
+            // Componente local_tutores, e nao report_unasus: aquele plugin nao esta
+            // instalado nas arvores 4.x, e a mensagem saia como string faltando --
+            // justo nos caminhos que o local_wstcc exercita. A string ja' existe aqui.
+            throw new moodle_exception('relationship_cohort_estudantes_not_available_error', 'local_tutores', '', null, "Relationship: {$relationship_id}");
         }
 
         return $cohorts;
@@ -317,7 +320,9 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         $cohorts = $DB->get_records_sql($sql, $params);
 
         if (empty($cohorts)) {
-            throw new moodle_exception('relationship_cohort_orientadores_not_available_error', 'report_unasus', '', null, "Relationship: {$relationship_id}");
+            // Ver a nota em get_relationship_cohorts_estudantes: mesmo defeito,
+            // mesmo conserto.
+            throw new moodle_exception('relationship_cohort_orientadores_not_available_error', 'local_tutores', '', null, "Relationship: {$relationship_id}");
         }
 
         return $cohorts;

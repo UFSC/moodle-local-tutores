@@ -235,6 +235,43 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
         local_tutores_grupo_orientacao::get_relationship_cohorts_orientadores($rid);
     }
 
+    /**
+     * ⚠️ O teste acima fica VERDE com a mensagem quebrada: ele so' afirma que a
+     * excecao subiu. Estes dois afirmam que ela e' LEGIVEL.
+     *
+     * As duas excecoes referenciavam o componente de string 'report_unasus', um
+     * plugin que nao esta instalado nesta arvore -- entao a mensagem chegava ao
+     * usuario como string faltando ("[[relationship_cohort_...]]"), justamente
+     * nos caminhos que as funcoes novas do local_wstcc exercitam.
+     */
+    public function test_erro_de_cohort_de_orientadores_tem_mensagem_legivel() {
+        $rid = $this->create_tagged_relationship($this->catcontext->id, 'Vazio', 'grupo_orientacao');
+
+        try {
+            local_tutores_grupo_orientacao::get_relationship_cohorts_orientadores($rid);
+            $this->fail('Deveria ter levantado moodle_exception.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('local_tutores', $e->module);
+            $this->assertTrue(get_string_manager()->string_exists($e->errorcode, $e->module),
+                    "A string {$e->errorcode} nao existe no componente {$e->module}.");
+            $this->assertStringNotContainsString('[[', $e->getMessage());
+        }
+    }
+
+    public function test_erro_de_cohort_de_estudantes_tem_mensagem_legivel() {
+        $rid = $this->create_tagged_relationship($this->catcontext->id, 'Vazio', 'grupo_orientacao');
+
+        try {
+            local_tutores_base_group::get_relationship_cohorts_estudantes($rid);
+            $this->fail('Deveria ter levantado moodle_exception.');
+        } catch (moodle_exception $e) {
+            $this->assertEquals('local_tutores', $e->module);
+            $this->assertTrue(get_string_manager()->string_exists($e->errorcode, $e->module),
+                    "A string {$e->errorcode} nao existe no componente {$e->module}.");
+            $this->assertStringNotContainsString('[[', $e->getMessage());
+        }
+    }
+
     // -----------------------------------------------------------------
     // Listagens (menu id => fullname).
     // -----------------------------------------------------------------
