@@ -122,4 +122,28 @@ class local_tutores_categoria_turma_testcase extends advanced_testcase {
 
         $this->assertEquals($raiz->id, \local_tutores\categoria::turma_ufsc($courseid));
     }
+
+    /**
+     * ⚠️ turma_ufsc() documenta devolver false quando nao resolve -- mas ESTOURAVA.
+     *
+     * get_path_category_by_course() devolve false para curso sem categoria (o
+     * curso do site, categoria 0) e para curso inexistente. O trim(false) vira
+     * string vazia, e o SQL fica com "WHERE instanceid IN ()" -- erro de SINTAXE,
+     * nao de dado: dml_read_exception.
+     *
+     * Medido em 31/08 pela equipe do TCC, chamando a A2 do local_wstcc: em vez do
+     * turma_ufsc_nao_encontrada, o web service devolvia dmlreadexception. A regra
+     * do app nao quebrava (qualquer excecao ja' torna success? falso), mas quem
+     * investigasse via falha de SQL crua em vez de "este curso nao pertence a
+     * turma nenhuma".
+     */
+    public function test_turma_false_para_curso_do_site_em_vez_de_estourar() {
+        $siteid = SITEID;
+
+        $this->assertFalse(\local_tutores\categoria::turma_ufsc($siteid));
+    }
+
+    public function test_turma_false_para_curso_inexistente_em_vez_de_estourar() {
+        $this->assertFalse(\local_tutores\categoria::turma_ufsc(999999));
+    }
 }

@@ -81,7 +81,18 @@ class categoria {
         } else {
             global $DB;
 
-            $path_list = trim(self::get_path_category_by_course($courseid));
+            $path_list = trim((string) self::get_path_category_by_course($courseid));
+
+            // ⚠️ Curso sem categoria (o curso do SITE, categoria 0) ou curso
+            // inexistente fazem get_path_category_by_course() devolver false. Sem
+            // esta guarda, o trim vira string vazia e o SQL abaixo fica com
+            // "instanceid IN ()" -- erro de SINTAXE, nao de dado, que sobe como
+            // dml_read_exception. Esta funcao promete devolver false quando nao
+            // resolve; estourar quebra a promessa e troca "este curso nao pertence
+            // a turma nenhuma" por uma falha de SQL crua na cara de quem investiga.
+            if ($path_list === '') {
+                return false;
+            }
 
             $sql = "SELECT DISTINCT ct.instanceid AS category_id
                           FROM {tag} t
