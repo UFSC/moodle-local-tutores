@@ -279,7 +279,21 @@ node is currently commented out.
 
 - Comments, identifiers, and user strings are in **Portuguese** — match the surrounding language.
 - User-facing strings go through `get_string(..., 'local_tutores')`; add keys to
-  `lang/en/local_tutores.php`. Some `moodle_exception` throws intentionally reference the
-  `report_unasus` string component, not this one.
+  `lang/en/local_tutores.php`. **All** `moodle_exception` throws must reference
+  `local_tutores` as the string component. Some used to reference `report_unasus` — that was
+  documented here as intentional, but `report_unasus` is **not installed on 4.x trees**, so
+  those errors reached the user as `[[missing string]]`. Fixed on 2026-08-31; do not
+  reintroduce a foreign component without checking the plugin is actually installed.
 - Build SQL `IN` lists with `$DB->get_in_or_equal(..., SQL_PARAMS_NAMED, ...)` and merge the
   returned params — this is the established pattern for the multi-cohort queries.
+- **Bump `$plugin->version` even for a small fix.** The version on the *Plugins overview*
+  screen is the only inventory Moodle offers for free, and it is what the deployment
+  checklist of the TCC project (`#34`) uses to verify what is installed on the server that
+  receives a turma. A fix that lands without a bump is **invisible to that check**: the
+  screen keeps showing the previous number, and the only way to tell is comparing git
+  commits, which nobody does in a routine check.
+
+  This bit on 2026-08-31: two fixes (the exception string component above, and the
+  `turma_ufsc()` guard) shipped without a bump, and the version had to be raised
+  afterwards — costing an extra cascade. ⚠️ A bump does trigger the full branch cascade, so
+  batch it with the change itself rather than as a follow-up.
