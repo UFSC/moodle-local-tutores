@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026083100; // The current plugin version (Date: YYYYMMDDXX)
+$plugin->version   = 2026083101; // The current plugin version (Date: YYYYMMDDXX)
 $plugin->component = 'local_tutores'; // Full name of the plugin (used for diagnostics)
 $plugin->dependencies = array('local_relationship' => 2026051901);
 

@@ -54,6 +54,13 @@ class Middleware {
     }
 
     public function exist() {
+        // Sem conexao nao ha' middleware — situacao normal para quem nao o usa, como
+        // ja' diz o fallback do construtor. Necessario porque db_init() agora devolve
+        // false quando nao conecta.
+        if (empty($this->db)) {
+            return false;
+        }
+
         // executa um select qualquer de uma tabela específica do middleware, para verificar a
         // existência da conexão com o banco do middleware
         $exist = $this->db->Execute("SELECT count(*) FROM PapeisContextos");
@@ -239,8 +246,27 @@ class Middleware {
         // Connect to the external database (forcing new connection)
         $externaldb = ADONewConnection($CFG->dbtype);
 
+        // O Moodle guarda a porta em $CFG->dboptions['dbport'], nao em $CFG->dbhost.
+        // Sem repassa-la o ADOdb assume 3306 e o Connect() falha em silencio, devolvendo
+        // uma conexao false — o erro so' aparecia bem longe daqui, como
+        // "mysqli_query(): Argument #1 ($mysql) must be of type mysqli, false given".
+        if (!empty($CFG->dboptions['dbport'])) {
+            $externaldb->port = (int) $CFG->dboptions['dbport'];
+        }
+
         // Considerando os dados de conexão do config.php e apenas alterando o dbname pelas configurações do plugin.
-        $externaldb->Connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass, $config->dbname, true);
+        $conectou = $externaldb->Connect($CFG->dbhost, $CFG->dbuser, $CFG->dbpass, $config->dbname, true);
+
+        // Connect() devolve false em silencio quando nao conecta, e o objeto segue
+        // utilizavel com _connectionID = false. Sem senha na mensagem, de proposito.
+        if (!$conectou) {
+            $porta = empty($CFG->dboptions['dbport']) ? '(padrao)' : $CFG->dboptions['dbport'];
+            debugging("Middleware: nao foi possivel conectar ao banco '{$config->dbname}' " .
+                      "em {$CFG->dbhost}:{$porta} com o usuario '{$CFG->dbuser}'. " .
+                      "O middleware sera' tratado como ausente.", DEBUG_NORMAL);
+            return false;
+        }
+
         $externaldb->SetFetchMode(ADODB_FETCH_ASSOC);
         $externaldb->SetCharSet('utf8');
 
