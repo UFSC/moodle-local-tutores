@@ -19,9 +19,9 @@
  *
  * Cobre a lógica auto-contida do plugin: localização do relationship por tag,
  * accessors plurais de relationship_cohorts, listagens de estudantes/tutores,
- * "tutor responsável" e formatação. Cobre também os caminhos COM filtro de
- * get_grupos_tutoria_by_userid / _new (que dependem do helper trivial
- * report_unasus_int_array_to_sql, carregado sob demanda).
+ * "tutor responsável" e formatação.
+ * The filtered paths of get_grupos_tutoria_by_userid / _new are covered too; they build the
+ * filter with $DB->get_in_or_equal() and no longer depend on report_unasus.
  *
  * get_estudantes_grupo_tutoria() fica FORA: ela delega a query_alunos_relationship()
  * do report_unasus, que constrói report_unasus_factory::singleton() a partir dos
@@ -375,27 +375,8 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
     }
 
     // -----------------------------------------------------------------
-    // Filtros de grupos. O caminho COM filtro depende de
-    // report_unasus_int_array_to_sql() (dependência de runtime não declarada);
-    // o caminho SEM filtro não depende e roda sempre.
+    // Group filters, with and without a filter.
     // -----------------------------------------------------------------
-
-    /**
-     * Carrega o helper report_unasus_int_array_to_sql() ou pula o teste se o
-     * report_unasus não estiver disponível neste ambiente.
-     */
-    protected function require_report_unasus_helpers() {
-        global $CFG;
-        if (!function_exists('report_unasus_int_array_to_sql')) {
-            $f = $CFG->dirroot . '/report/unasus/locallib.php';
-            if (file_exists($f)) {
-                require_once($f);
-            }
-        }
-        if (!function_exists('report_unasus_int_array_to_sql')) {
-            $this->markTestSkipped('report_unasus indisponível; o caminho com filtro depende de report_unasus_int_array_to_sql().');
-        }
-    }
 
     public function test_get_grupos_tutoria_by_userid_sem_filtro_retorna_grupos_com_tutor() {
         $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_by_userid($this->categoria_turma);
@@ -405,7 +386,6 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
     }
 
     public function test_get_grupos_tutoria_by_userid_filtra_por_tutor() {
-        $this->require_report_unasus_helpers();
         // tutor_a só é membro do Grupo A.
         $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_by_userid(
             $this->categoria_turma, array($this->tutor_a->id));
@@ -422,11 +402,44 @@ class local_tutores_grupos_tutoria_testcase extends advanced_testcase {
     }
 
     public function test_get_grupos_tutoria_new_filtra_por_grupo() {
-        $this->require_report_unasus_helpers();
         $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_new(
             $this->categoria_turma, array($this->grupo_a));
         $this->assertCount(1, $grupos);
         $this->assertArrayHasKey($this->grupo_a, $grupos);
         $this->assertArrayNotHasKey($this->grupo_b, $grupos);
+    }
+
+    /**
+     * An empty group filter selects no group.
+     *
+     * @covers \local_tutores_grupos_tutoria::get_grupos_tutoria_new
+     */
+    public function test_get_grupos_tutoria_new_lista_vazia_retorna_vazio(): void {
+        $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_new($this->categoria_turma, []);
+        $this->assertSame([], $grupos);
+    }
+
+    /**
+     * An empty user filter selects no group.
+     *
+     * @covers \local_tutores_grupos_tutoria::get_grupos_tutoria_by_userid
+     */
+    public function test_get_grupos_tutoria_by_userid_lista_vazia_retorna_vazio(): void {
+        $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_by_userid($this->categoria_turma, []);
+        $this->assertSame([], $grupos);
+    }
+
+    /**
+     * A plain int user id works as a filter.
+     *
+     * @covers \local_tutores_grupos_tutoria::get_grupos_tutoria_by_userid
+     */
+    public function test_get_grupos_tutoria_by_userid_aceita_id_inteiro(): void {
+        $grupos = local_tutores_grupos_tutoria::get_grupos_tutoria_by_userid(
+            $this->categoria_turma,
+            (int) $this->tutor_a->id
+        );
+        $this->assertCount(1, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
     }
 }

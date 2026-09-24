@@ -296,6 +296,50 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
     }
 
     /**
+     * Returns the role shortnames of the orientation support.
+     *
+     * Reads local_wstcc_suporte_roles, the same setting local_wstcc uses, so both plugins agree on
+     * who the support is. The default mirrors local_wstcc_papeis_configurados(): a restored dump
+     * can drop the config row, and an empty value must not silently hide every support member.
+     *
+     * @return string[]
+     */
+    public static function get_papeis_suporte() {
+        $value = get_config('moodle', 'local_wstcc_suporte_roles');
+        if ($value === false || trim($value) === '') {
+            $value = 'suporteorientacao';
+        }
+        return array_values(array_filter(array_map('trim', explode(',', $value)), 'strlen'));
+    }
+
+    /**
+     * Returns the relationship cohorts of the orientation support role.
+     *
+     * The support cohort is optional, so an empty array is a valid answer and not an error.
+     *
+     * @param int $relationshipid Id of the orientation relationship.
+     * @return array [id => stdClass] keyed by relationship_cohorts id
+     */
+    public static function get_relationship_cohorts_suportes($relationshipid) {
+        global $DB;
+
+        $shortnames = self::get_papeis_suporte();
+        if (empty($shortnames)) {
+            // A setting made only of separators names no role: there is no support cohort.
+            return [];
+        }
+        [$rolein, $roleparams] = $DB->get_in_or_equal($shortnames, SQL_PARAMS_NAMED, 'shortname');
+
+        $sql = "SELECT rc.*
+                  FROM {relationship_cohorts} rc
+                  JOIN {role} r ON (r.id = rc.roleid)
+                 WHERE rc.relationshipid = :relationshipid
+                   AND r.shortname {$rolein}";
+
+        return $DB->get_records_sql($sql, array_merge($roleparams, ['relationshipid' => $relationshipid]));
+    }
+
+    /**
      * Retorna TODOS os relationship_cohorts do papel orientador de um determinado relationship.
      *
      * @param int $relationship_id
@@ -358,6 +402,17 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         return self::get_relationship($categoria_turma, 'grupo_orientacao');
     }
 
+    /**
+     * Returns the orientation groups of a course category.
+     *
+     * With no filter, returns every group. With a filter, matches only the groups where the given
+     * user id(s) belong to an advisor cohort OR a support cohort (issue #20): the orientation
+     * support was previously invisible to this search, since only advisor cohorts were joined.
+     *
+     * @param int $categoria_turma
+     * @param null|int|int[] $orientadores User id, array of user ids, or null for no filter.
+     * @return array [id => stdClass] keyed by relationship_groups id
+     */
     static function get_grupos_orientacao_by_userid($categoria_turma, $orientadores = null) {
         global $DB;
         $relationship = self::get_relationship_orientacao($categoria_turma);
@@ -372,44 +427,67 @@ class local_tutores_grupo_orientacao extends local_tutores_base_group {
         }
 
         else {
+            $userids = is_array($orientadores) ? $orientadores : [$orientadores];
+            if (empty($userids)) {
+                // An empty filter selects no group. Building "IN ()" is invalid SQL (issue #20).
+                return [];
+            }
+            [$userin, $userparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'userid');
 
-            $orientadores_sql = report_unasus_int_array_to_sql($orientadores);
-            // Plural: suporta múltiplos cohorts no papel orientador.
-            $cohorts_orientadores = self::get_relationship_cohorts_orientadores($relationship->id);
-            list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
-                array_keys($cohorts_orientadores), SQL_PARAMS_NAMED, 'cohortid');
+            // Advisors and orientation support both see the groups they belong to (issue #20).
+            // Keys are relationship_cohorts ids, so "+" keeps each cohort once.
+            $cohorts = self::get_relationship_cohorts_orientadores($relationship->id)
+                + self::get_relationship_cohorts_suportes($relationship->id);
+            [$cohortin, $cohortparams] = $DB->get_in_or_equal(
+                array_keys($cohorts),
+                SQL_PARAMS_NAMED,
+                'cohortid'
+            );
 
             $sql = "SELECT rg.*
                       FROM {relationship_groups} rg
                       JOIN {relationship_members} rm
-                        ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
+                        ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohortin})
                      WHERE rg.relationshipid = :relationshipid
-                       AND rm.userid IN ({$orientadores_sql})
+                       AND rm.userid {$userin}
                   GROUP BY rg.id
                   ORDER BY name";
-            $params = array_merge($cohort_params, array('relationshipid' => $relationship->id));
+            $params = array_merge($cohortparams, $userparams, ['relationshipid' => $relationship->id]);
         }
 
         return $DB->get_records_sql($sql, $params);
     }
 
-    static function get_grupos_orientacao_new($categoria_turma, $grupos_orientacao = null) {
+    /**
+     * Returns the orientation groups of a course category, optionally filtered by group id.
+     *
+     * @param int $categoriaturma Id of the class course category.
+     * @param null|int|int[] $gruposorientacao Group id, array of group ids, or null for no filter.
+     * @return array [id => stdClass] keyed by relationship_groups id
+     */
+    public static function get_grupos_orientacao_new($categoriaturma, $gruposorientacao = null) {
         global $DB;
-        $relationship = self::get_relationship_orientacao($categoria_turma);
+        $relationship = self::get_relationship_orientacao($categoriaturma);
 
-        $grupos_orientacao_where = " ";
+        $gruposorientacaowhere = " ";
+        $grupoparams = [];
 
-        if (!is_null($grupos_orientacao)) {
-            $grupos_orientacao_sql = report_unasus_int_array_to_sql($grupos_orientacao);
-            $grupos_orientacao_where = " AND rg.id IN ({$grupos_orientacao_sql}) ";
+        if (!is_null($gruposorientacao)) {
+            $grupoids = is_array($gruposorientacao) ? $gruposorientacao : [$gruposorientacao];
+            if (empty($grupoids)) {
+                // An empty filter selects no group. Building "IN ()" is invalid SQL (issue #20).
+                return [];
+            }
+            [$grupoin, $grupoparams] = $DB->get_in_or_equal($grupoids, SQL_PARAMS_NAMED, 'grupoid');
+            $gruposorientacaowhere = " AND rg.id {$grupoin} ";
         }
         $sql = "SELECT rg.*
                   FROM {relationship_groups} rg
                  WHERE rg.relationshipid = :relationshipid
-               $grupos_orientacao_where
+               $gruposorientacaowhere
               ORDER BY name";
 
-        $params = array('relationshipid' => $relationship->id);
+        $params = array_merge($grupoparams, ['relationshipid' => $relationship->id]);
 
         return $DB->get_records_sql($sql, $params);
     }
@@ -557,32 +635,41 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
      * Retorna lista de grupos de tutoria de um determinado curso ufsc
      *
      * @param string $categoria_turma
-     * @param array $tutores
+     * @param null|int|int[] $tutores User id, array of user ids, or null for no filter.
      * @return array
      */
     static function get_grupos_tutoria_by_userid($categoria_turma, $tutores = null) {
         global $DB;
         $relationship = self::get_relationship_tutoria($categoria_turma);
         // Plural: suporta múltiplos cohorts no papel tutor.
-        $cohorts_tutores = self::get_relationship_cohorts_tutores($relationship->id);
-        list($cohort_in, $cohort_params) = $DB->get_in_or_equal(
-            array_keys($cohorts_tutores), SQL_PARAMS_NAMED, 'cohortid');
+        $cohortstutores = self::get_relationship_cohorts_tutores($relationship->id);
+        [$cohortin, $cohortparams] = $DB->get_in_or_equal(
+            array_keys($cohortstutores),
+            SQL_PARAMS_NAMED,
+            'cohortid'
+        );
 
-        $tutores_where = " ";
+        $tutoreswhere = " ";
+        $userparams = [];
         if (!is_null($tutores)) {
-            $tutores_sql = report_unasus_int_array_to_sql($tutores);
-            $tutores_where = " AND rm.userid IN ({$tutores_sql}) ";
+            $userids = is_array($tutores) ? $tutores : [$tutores];
+            if (empty($userids)) {
+                // An empty filter selects no group. Building "IN ()" is invalid SQL (issue #20).
+                return [];
+            }
+            [$userin, $userparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED, 'userid');
+            $tutoreswhere = " AND rm.userid {$userin} ";
         }
         $sql = "SELECT rg.*
                   FROM {relationship_groups} rg
                   JOIN {relationship_members} rm
-                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohort_in})
+                    ON (rg.id=rm.relationshipgroupid AND rm.relationshipcohortid {$cohortin})
                  WHERE rg.relationshipid = :relationshipid
-               $tutores_where
+               $tutoreswhere
               GROUP BY rg.id
               ORDER BY name";
 
-        $params = array_merge($cohort_params, array('relationshipid' => $relationship->id));
+        $params = array_merge($cohortparams, $userparams, ['relationshipid' => $relationship->id]);
 
         return $DB->get_records_sql($sql, $params);
     }
@@ -590,26 +677,32 @@ class local_tutores_grupos_tutoria extends local_tutores_base_group {
     /**
      * Retorna lista de grupos de tutoria de um determinado curso ufsc
      *
-     * @param string $categoria_turma
-     * @param array $tutores
+     * @param string $categoriaturma Id of the class course category.
+     * @param null|int|int[] $grupostutoria Group id, array of group ids, or null for no filter.
      * @return array
      */
-    static function get_grupos_tutoria_new($categoria_turma, $grupos_tutoria = null) {
+    public static function get_grupos_tutoria_new($categoriaturma, $grupostutoria = null) {
         global $DB;
-        $relationship = self::get_relationship_tutoria($categoria_turma);
-        $grupos_tutoria_where = " ";
+        $relationship = self::get_relationship_tutoria($categoriaturma);
+        $grupostutoriawhere = " ";
+        $grupoparams = [];
 
-        if (!is_null($grupos_tutoria)) {
-            $grupos_tutoria_sql = report_unasus_int_array_to_sql($grupos_tutoria);
-            $grupos_tutoria_where = " AND rg.id IN ({$grupos_tutoria_sql}) ";
+        if (!is_null($grupostutoria)) {
+            $grupoids = is_array($grupostutoria) ? $grupostutoria : [$grupostutoria];
+            if (empty($grupoids)) {
+                // An empty filter selects no group. Building "IN ()" is invalid SQL (issue #20).
+                return [];
+            }
+            [$grupoin, $grupoparams] = $DB->get_in_or_equal($grupoids, SQL_PARAMS_NAMED, 'grupoid');
+            $grupostutoriawhere = " AND rg.id {$grupoin} ";
         }
         $sql = "SELECT rg.*
                   FROM {relationship_groups} rg
                  WHERE rg.relationshipid = :relationshipid
-               $grupos_tutoria_where
+               $grupostutoriawhere
               ORDER BY name";
 
-        $params = array('relationshipid' => $relationship->id);
+        $params = array_merge($grupoparams, ['relationshipid' => $relationship->id]);
 
         return $DB->get_records_sql($sql, $params);
     }

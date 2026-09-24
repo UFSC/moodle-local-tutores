@@ -20,9 +20,9 @@
  * Espelha grupos_tutoria_test.php para o lado orientador. Cobre a lógica
  * auto-contida: localização do relationship pela tag grupo_orientacao, accessors
  * plurais de relationship_cohorts do papel orientador, listagens, "orientador
- * responsável" e formatação. Cobre também os caminhos COM filtro de
- * get_grupos_orientacao_by_userid / _new (que dependem do helper trivial
- * report_unasus_int_array_to_sql, carregado sob demanda).
+ * responsável" e formatação.
+ * The filtered paths of get_grupos_orientacao_by_userid / _new are covered too; they build the
+ * filter with $DB->get_in_or_equal() and no longer depend on report_unasus.
  *
  * @package    local_tutores
  * @copyright  2026 UFSC
@@ -359,26 +359,8 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
     }
 
     // -----------------------------------------------------------------
-    // Filtros de grupos. O caminho COM filtro depende de
-    // report_unasus_int_array_to_sql(); o caminho SEM filtro não depende.
+    // Group filters, with and without a filter.
     // -----------------------------------------------------------------
-
-    /**
-     * Carrega o helper report_unasus_int_array_to_sql() ou pula o teste se o
-     * report_unasus não estiver disponível neste ambiente.
-     */
-    protected function require_report_unasus_helpers() {
-        global $CFG;
-        if (!function_exists('report_unasus_int_array_to_sql')) {
-            $f = $CFG->dirroot . '/report/unasus/locallib.php';
-            if (file_exists($f)) {
-                require_once($f);
-            }
-        }
-        if (!function_exists('report_unasus_int_array_to_sql')) {
-            $this->markTestSkipped('report_unasus indisponível; o caminho com filtro depende de report_unasus_int_array_to_sql().');
-        }
-    }
 
     public function test_get_grupos_orientacao_by_userid_sem_filtro_retorna_todos() {
         $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid($this->categoria_turma);
@@ -388,7 +370,6 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
     }
 
     public function test_get_grupos_orientacao_by_userid_filtra_por_orientador() {
-        $this->require_report_unasus_helpers();
         // orientador_a só é membro do Grupo A.
         $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
             $this->categoria_turma, array($this->orientador_a->id));
@@ -405,11 +386,296 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
     }
 
     public function test_get_grupos_orientacao_new_filtra_por_grupo() {
-        $this->require_report_unasus_helpers();
         $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_new(
             $this->categoria_turma, array($this->grupo_a));
         $this->assertCount(1, $grupos);
         $this->assertArrayHasKey($this->grupo_a, $grupos);
         $this->assertArrayNotHasKey($this->grupo_b, $grupos);
+    }
+
+    /**
+     * An empty group filter selects no group.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_new
+     */
+    public function test_get_grupos_orientacao_new_lista_vazia_retorna_vazio(): void {
+        // Issue #20: an empty filter used to become "rg.id IN ()", which is invalid SQL.
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_new($this->categoria_turma, []);
+        $this->assertSame([], $grupos);
+    }
+
+    /**
+     * A filter with two group ids returns both groups.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_new
+     */
+    public function test_get_grupos_orientacao_new_filtra_por_dois_grupos(): void {
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_new(
+            $this->categoria_turma,
+            [$this->grupo_a, $this->grupo_b]
+        );
+        $this->assertCount(2, $grupos);
+    }
+
+    /**
+     * An empty user filter selects no group.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_get_grupos_orientacao_by_userid_lista_vazia_retorna_vazio(): void {
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid($this->categoria_turma, []);
+        $this->assertSame([], $grupos);
+    }
+
+    /**
+     * A plain int user id works as a filter.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_get_grupos_orientacao_by_userid_aceita_id_inteiro(): void {
+        // The report passes $USER->id as a plain int, not as an array.
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            (int) $this->orientador_a->id
+        );
+        $this->assertCount(1, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+    }
+
+    /**
+     * Two advisors return the groups of both.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_get_grupos_orientacao_by_userid_dois_orientadores(): void {
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            [$this->orientador_a->id, $this->orientador_b->id]
+        );
+        $this->assertCount(2, $grupos);
+    }
+
+    /**
+     * A user in no group gets no group.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_get_grupos_orientacao_by_userid_usuario_sem_grupo_retorna_vazio(): void {
+        $avulso = $this->getDataGenerator()->create_user();
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            [$avulso->id]
+        );
+        $this->assertSame([], $grupos);
+    }
+
+    /**
+     * Adds an orientation support cohort to the relationship.
+     *
+     * Kept out of setUp() so the existing tests keep the fixture they were written against.
+     *
+     * @param string $shortname Role shortname for the support cohort.
+     * @return int relationship_cohorts id.
+     */
+    protected function add_suporte_cohort($shortname = 'suporteorientacao') {
+        global $DB;
+        $roleid = $DB->get_field('role', 'id', ['shortname' => $shortname]);
+        if (!$roleid) {
+            $roleid = create_role($shortname, $shortname, '');
+        }
+        $cohort = $this->getDataGenerator()->create_cohort(['contextid' => $this->catcontext->id]);
+        return relationship_add_cohort((object) [
+            'relationshipid' => $this->relationshipid,
+            'cohortid' => $cohort->id,
+            'roleid' => $roleid,
+            // A support member may serve several groups.
+            'allowdupsingroups' => 1,
+            'uniformdistribution' => 0,
+        ]);
+    }
+
+    /**
+     * A support member in no group gets no group.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_suporte_em_nenhum_grupo_retorna_vazio(): void {
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        $this->add_suporte_cohort();
+        $suporte = $this->getDataGenerator()->create_user();
+
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $suporte->id
+        );
+        $this->assertSame([], $grupos);
+    }
+
+    /**
+     * A support member in one group finds that group.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_suporte_em_um_grupo_encontra_o_grupo(): void {
+        // Issue #20: the support member used to be ignored, since only advisor cohorts were searched.
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        $rcsuporte = $this->add_suporte_cohort();
+        $suporte = $this->getDataGenerator()->create_user();
+        relationship_add_member($this->grupo_a, $rcsuporte, $suporte->id);
+
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $suporte->id
+        );
+        $this->assertCount(1, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+    }
+
+    /**
+     * A support member in two groups finds both.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_suporte_em_dois_grupos_encontra_os_dois(): void {
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        $rcsuporte = $this->add_suporte_cohort();
+        $suporte = $this->getDataGenerator()->create_user();
+        relationship_add_member($this->grupo_a, $rcsuporte, $suporte->id);
+        relationship_add_member($this->grupo_b, $rcsuporte, $suporte->id);
+
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $suporte->id
+        );
+        $this->assertCount(2, $grupos);
+    }
+
+    /**
+     * Support of one group and advisor of another sees both groups.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_suporte_de_um_grupo_e_orientador_de_outro_ve_os_dois(): void {
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        $rcsuporte = $this->add_suporte_cohort();
+        // The fixture makes orientador_b advise group B (fixture) and supports group A.
+        relationship_add_member($this->grupo_a, $rcsuporte, $this->orientador_b->id);
+
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $this->orientador_b->id
+        );
+        $this->assertCount(2, $grupos);
+    }
+
+    /**
+     * Support and advisor of the same group gets the group once.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_suporte_e_orientador_do_mesmo_grupo_nao_repete(): void {
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        $rcsuporte = $this->add_suporte_cohort();
+        // The fixture makes orientador_a advise group A (fixture) and also supports it: one group, listed once.
+        relationship_add_member($this->grupo_a, $rcsuporte, $this->orientador_a->id);
+
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $this->orientador_a->id
+        );
+        $this->assertCount(1, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
+    }
+
+    /**
+     * A student is still not matched by the search.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_estudante_continua_fora_da_busca(): void {
+        // The support cohort must widen the search to support members only, not to every cohort.
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        $this->add_suporte_cohort();
+
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $this->estudante_a1->id
+        );
+        $this->assertSame([], $grupos);
+    }
+
+    /**
+     * A blank support setting falls back to the default role.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_papeis_suporte
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_config_de_suporte_vazia_usa_o_padrao(): void {
+        set_config('local_wstcc_suporte_roles', '');
+        $rcsuporte = $this->add_suporte_cohort('suporteorientacao');
+        $suporte = $this->getDataGenerator()->create_user();
+        relationship_add_member($this->grupo_a, $rcsuporte, $suporte->id);
+
+        $this->assertSame(['suporteorientacao'], local_tutores_grupo_orientacao::get_papeis_suporte());
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $suporte->id
+        );
+        $this->assertCount(1, $grupos);
+    }
+
+    /**
+     * A support setting with two roles accepts the second one.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_papeis_suporte
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_config_de_suporte_com_dois_papeis_aceita_o_segundo(): void {
+        set_config('local_wstcc_suporte_roles', 'outro_papel, suporte2');
+        $rcsuporte = $this->add_suporte_cohort('suporte2');
+        $suporte = $this->getDataGenerator()->create_user();
+        relationship_add_member($this->grupo_a, $rcsuporte, $suporte->id);
+
+        $this->assertSame(['outro_papel', 'suporte2'], local_tutores_grupo_orientacao::get_papeis_suporte());
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $suporte->id
+        );
+        $this->assertCount(1, $grupos);
+    }
+
+    /**
+     * A relationship without a support cohort raises no error.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_relationship_cohorts_suportes
+     * @covers \local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid
+     */
+    public function test_sem_coorte_de_suporte_nao_dispara_erro(): void {
+        // Unlike the advisor cohort, the support cohort is optional.
+        set_config('local_wstcc_suporte_roles', 'suporteorientacao');
+        $this->assertSame([], local_tutores_grupo_orientacao::get_relationship_cohorts_suportes($this->relationshipid));
+
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $this->orientador_a->id
+        );
+        $this->assertCount(1, $grupos);
+    }
+
+    /**
+     * A support setting made only of separators must not break the advisor path.
+     *
+     * @covers \local_tutores_grupo_orientacao::get_relationship_cohorts_suportes
+     */
+    public function test_config_de_suporte_so_com_separadores_nao_quebra_o_orientador(): void {
+        set_config('local_wstcc_suporte_roles', ',');
+
+        $this->assertSame([], local_tutores_grupo_orientacao::get_papeis_suporte());
+        $grupos = local_tutores_grupo_orientacao::get_grupos_orientacao_by_userid(
+            $this->categoria_turma,
+            $this->orientador_a->id
+        );
+        $this->assertCount(1, $grupos);
+        $this->assertArrayHasKey($this->grupo_a, $grupos);
     }
 }
