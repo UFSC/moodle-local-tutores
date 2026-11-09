@@ -420,6 +420,6 @@ class MiddlewareUtil {
         // GROUP BY garante 1ª coluna (curso) única: a view pode trazer o mesmo código de curso
         // em mais de uma linha, o que disparava debugging() em get_records_sql (quebra Behat em
         // páginas de admin, pois block_central/settings.php chama este método ao montar a árvore).
-        return $middleware->get_records_sql_menu("SELECT cursos.curso, cursos.nome FROM {View_Cursos_Ativos} cursos GROUP BY cursos.curso");
+        return $middleware->get_records_sql_menu("SELECT cursos.curso, MAX(cursos.nome) AS nome FROM {View_Cursos_Ativos} cursos GROUP BY cursos.curso");
     }
 }
