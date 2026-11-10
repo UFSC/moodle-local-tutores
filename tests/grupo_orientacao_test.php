@@ -254,7 +254,7 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
             $this->assertEquals('local_tutores', $e->module);
             $this->assertTrue(get_string_manager()->string_exists($e->errorcode, $e->module),
                     "A string {$e->errorcode} nao existe no componente {$e->module}.");
-            $this->assertStringNotContainsString('[[', $e->getMessage());
+            $this->assertNotContains('[[', $e->getMessage());
         }
     }
 
@@ -268,7 +268,7 @@ class local_tutores_grupo_orientacao_testcase extends advanced_testcase {
             $this->assertEquals('local_tutores', $e->module);
             $this->assertTrue(get_string_manager()->string_exists($e->errorcode, $e->module),
                     "A string {$e->errorcode} nao existe no componente {$e->module}.");
-            $this->assertStringNotContainsString('[[', $e->getMessage());
+            $this->assertNotContains('[[', $e->getMessage());
         }
     }
 
