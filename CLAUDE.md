@@ -29,103 +29,86 @@ Moodle install. To exercise it you need a running Moodle (the repo lives inside 
 - Coding standards: follow Moodle / PSR-12 conventions. The `moodle-standards` skill applies these
   automatically — prefer it over ad-hoc formatting.
 
-## Branch hierarchy and cross-version cascade
+## Branch hierarchy and cross-version propagation
 
-The plugin is maintained against several Moodle versions in parallel. The release branches form a
-strictly linear, ordered chain (oldest → newest):
+The plugin is maintained against several Moodle versions in parallel, one release branch per
+version, ordered oldest → newest:
 
 ```
-MOODLE_30_STABLE → MOODLE_31_STABLE → MOODLE_38_STABLE → MOODLE_401_STABLE
+MOODLE_30_STABLE → MOODLE_31_STABLE → MOODLE_38_STABLE → MOODLE_401_STABLE → MOODLE_405_STABLE
 ```
 
-> **`MOODLE_31_STABLE` is not yet created.** Until it exists, the live cascade is
-> `MOODLE_30_STABLE → MOODLE_38_STABLE → MOODLE_401_STABLE` (i.e. `MOODLE_38_STABLE` rebases directly
-> onto `MOODLE_30_STABLE`). When `MOODLE_31_STABLE` is added it slots **between** `30` and `38`, and
-> the cascade reverts to the full chain above. `MOODLE_35_STABLE` is **not** part of the cascade.
+> **`MOODLE_31_STABLE` is not yet created.** Until it exists, the live order is
+> `MOODLE_30_STABLE → MOODLE_38_STABLE → MOODLE_401_STABLE → MOODLE_405_STABLE`. When it is added it
+> slots **between** `30` and `38`. `MOODLE_35_STABLE` is **not** part of the chain.
 
-All branches were bootstrapped from the same commit, so they start **identical**; the cascade only
-becomes meaningful once version-specific code actually diverges.
+### The branches are NOT an ancestor chain — propagate by cherry-pick
+
+All branches were bootstrapped from the same commit, but they have since **diverged**: each one has
+its own `version.php` numbers and version-specific code (PHPUnit API, deprecated core classes).
+Measured on 2026-11-10: none of `30 → 38 → 401 → 405` is an ancestor of the next one. Fixes have been
+propagated by **`git cherry-pick -x`** onto each branch (the commits carry
+`(cherry picked from commit …)`), not by rebase.
+
+**Do not rebase the branches onto each other, and do not run `moodle-cascade` here.** A rebase would
+rewrite the history of every downstream branch, and the Moodle superprojects pin `local/tutores` to
+the **tips** of these branches (e.g. the unasus3 and unasus-dev superprojects): rewriting them leaves
+those gitlinks pointing at commits outside any branch. With stale local branches, a
+`--force-with-lease` push would even pass and **drop commits that exist only on the remote**.
 
 ### `main`: alias for `MOODLE_30_STABLE`
 
 `main` is kept strictly aligned with `MOODLE_30_STABLE` — it always points at the exact same commit.
-It does **not** receive commits directly and is **not** part of the cascade chain. Whenever
-`MOODLE_30_STABLE` moves, `main` must be fast-forwarded to it and pushed (see the cascade workflow
-below).
-
-> Historically the default branch was `master`. It was renamed to `main` and removed from the
-> remote. Do not reintroduce it.
+It does **not** receive commits directly. Whenever `MOODLE_30_STABLE` moves, push it to `main` as a
+fast-forward. Historically the default branch was `master`; it was renamed to `main` and removed
+from the remote. Do not reintroduce it.
 
 ### Remote (single GitHub upstream)
 
 Unlike `local_relationship` (which is mirrored on GitLab UFSC **and** GitHub), `local_tutores` lives
 on a **single** upstream: the GitHub repo `UFSC/moodle-local-tutores`. It is reachable through two
 remotes that point at the **same** repo — `origin` (HTTPS) and `stream` (SSH) — so a single push
-updates everything; there is no second mirror to keep in sync. Examples below use `origin`.
+updates everything; there is no second mirror to keep in sync.
 
-### Cascade rule
+### Propagation rule
 
-When a change lands on any branch in the chain:
+1. Commit on the **oldest** branch that needs the change, and push it (plain push, fast-forward).
+2. **If** that branch is `MOODLE_30_STABLE`: push it to `main` too (`git push stream MOODLE_30_STABLE:main`).
+3. For every **downstream** branch that also needs the change, in order: start from the **remote**
+   tip (`stream/<branch>`, not the local branch, which may be stale), `git cherry-pick -x <sha>`, run
+   the tests on that Moodle version, and push with a plain push (`HEAD:<branch>`). **Never force-push.**
+4. A change that only makes sense on one version stays on that branch (e.g. a test rewritten for the
+   PHPUnit 4.8 of Moodle 3.0).
 
-1. Remember the originally-active branch so you can return to it at the end.
-2. Push the branch where the commit landed.
-3. **If** the commit landed on `MOODLE_30_STABLE`: fast-forward `main` to it and push. (If the commit
-   landed elsewhere, skip this step — `MOODLE_30_STABLE` did not move.)
-4. For every branch *downstream* of where the commit landed (to the right of it in the chain), rebase
-   it onto its immediately preceding chain neighbour, in order, and force-push.
-5. Return to the branch you remembered in step 1.
-
-Example — a fix committed on `MOODLE_30_STABLE` (the base of the chain, so the full workflow runs).
-Reflects the live chain while `MOODLE_31_STABLE` does not exist (`38` rebases directly onto `30`):
+Example — a change committed on `MOODLE_30_STABLE` that applies to every version:
 
 ```bash
-# 0. Remember where we started.
-ORIGINAL_BRANCH=$(git branch --show-current)
-
-# 1. Land the change on MOODLE_30_STABLE, push.
-git checkout MOODLE_30_STABLE
+git fetch stream
+git checkout MOODLE_30_STABLE           # must match stream/MOODLE_30_STABLE before committing
 # ... edit, git add, git commit ...
-git push origin MOODLE_30_STABLE
+git push stream MOODLE_30_STABLE
+git push stream MOODLE_30_STABLE:main   # main follows 30 (fast-forward)
 
-# 2. main follows MOODLE_30_STABLE (fast-forward).
-git checkout main && git merge --ff-only MOODLE_30_STABLE
-git push origin main
-
-# 3. Cascade downstream — each branch rebases onto the previous one as just updated.
-#    (When MOODLE_31_STABLE exists, insert it here between 30 and 38.)
-git checkout MOODLE_38_STABLE && git rebase MOODLE_30_STABLE
-git push --force-with-lease origin MOODLE_38_STABLE
-
-git checkout MOODLE_401_STABLE && git rebase MOODLE_38_STABLE
-git push --force-with-lease origin MOODLE_401_STABLE
-
-# 4. Return to the original branch.
-git checkout "$ORIGINAL_BRANCH"
+SHA=$(git rev-parse HEAD)
+git worktree add --detach ../tutores-pick stream/MOODLE_38_STABLE
+for b in MOODLE_38_STABLE MOODLE_401_STABLE MOODLE_405_STABLE; do
+    git -C ../tutores-pick checkout --detach "stream/$b"
+    git -C ../tutores-pick cherry-pick -x "$SHA"   # stop here on conflict and resolve
+    git -C ../tutores-pick push stream "HEAD:$b"
+done
+git worktree remove ../tutores-pick
 ```
-
-If the change lands on a non-base branch (e.g., `MOODLE_38_STABLE`), skip step 2 —
-`MOODLE_30_STABLE` was not touched, so `main` is already in sync. Push only the branch where the
-commit landed, then cascade downstream from there, then return.
 
 ### Notes
 
-- Always cascade in order, never skip a hop. Each branch rebases onto the **previous chain branch as
-  just updated**, not onto the branch where the original change was made.
-- `main` tracks `MOODLE_30_STABLE` by fast-forward (`git merge --ff-only MOODLE_30_STABLE` + plain
-  `git push`) in the normal case. If `MOODLE_30_STABLE` was rewritten (e.g., amend or rebase of an
-  existing commit), `main` needs `git reset --hard MOODLE_30_STABLE` + `git push --force-with-lease`
-  instead.
-- Always return to the branch you started on at the end of the cascade (step 5). Skipping this leaves
-  you parked on `MOODLE_401_STABLE` (or whichever was last) and a follow-up session may accidentally
-  continue work on the wrong branch.
-- Upstream branches (to the left of where you committed) are **not** updated automatically —
-  backporting to older versions is a separate, explicit decision.
-- Prefer `git push --force-with-lease` over `git push --force` (or `-f`). It refuses to overwrite
-  remote work that appeared since your last fetch. Use the unsafer `--force` only when you have a
-  specific reason and have confirmed no one else is working on the branch.
-- Resolve any conflicts during rebase the normal way (`git add` + `git rebase --continue`); do not
-  abandon the cascade halfway — leaving downstream branches out of sync is the failure mode this rule
-  exists to prevent.
+- **`version.php` conflicts are expected** when cherry-picking a version bump: each branch has its own
+  number. Resolve by setting the new version on that branch; do not carry another branch's number.
+- Prefer working from `stream/<branch>` in a detached worktree: the local `MOODLE_*` branches of a
+  given clone are often behind the remote.
+- Upstream branches (older than where you committed) are not updated automatically — backporting is
+  a separate, explicit decision.
+- If one day the chain is realigned into a real ancestor chain (one deliberate rebase, with the
+  superproject gitlinks bumped afterwards), this section must be rewritten before anyone rebases.
 - This section is mirrored by `docs/branch-cascade.md`. Whenever it changes, update that file in
   parallel.
 
@@ -295,5 +278,5 @@ node is currently commented out.
 
   This bit on 2026-08-31: two fixes (the exception string component above, and the
   `turma_ufsc()` guard) shipped without a bump, and the version had to be raised
-  afterwards — costing an extra cascade. ⚠️ A bump does trigger the full branch cascade, so
+  afterwards — costing an extra round of propagation. ⚠️ A bump has to be cherry-picked to every branch, so
   batch it with the change itself rather than as a follow-up.
