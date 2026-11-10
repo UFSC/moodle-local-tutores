@@ -9,7 +9,7 @@
 #
 # Exemplos:
 #   ./run_tests.sh
-#   ./run_tests.sh tests/tutores_smoke_test.php
+#   ./run_tests.sh tests/categoria_test.php
 #   ./run_tests.sh --reset
 # =============================================================================
 
@@ -39,13 +39,17 @@ fi
 # ---------------------------------------------------------------------------
 # Configurações
 # ---------------------------------------------------------------------------
-SISTEM_NAME="local-$CORE_NAME"
-CONTAINER_NAME="moodle-$SISTEM_NAME"
-DOCKER_COMPOSE_DIR="/home/$USER/workspace/docker/$DOCKER_VERSION"
-MOODLE_LOCAL_SITE="www/$SISTEM_NAME"
-MOODLE_ROOT_IN_CONTAINER="/home/moodle/$MOODLE_LOCAL_SITE"
-PHPUNIT_PREFIX="phpu_"
-PHPUNIT_DATAROOT="/home/moodle/moodledata/${PHPUNIT_PREFIX}$SISTEM_NAME"
+# Todos os valores abaixo sao derivados de CORE_NAME/DOCKER_VERSION, que e' a convencao
+# da maioria dos ambientes. Cada um pode ser sobreposto no .env quando o ambiente foge
+# dela -- o php83, por exemplo, nomeia o container ao contrario e serve de /var/www.
+SISTEM_NAME="${SISTEM_NAME:-local-$CORE_NAME}"
+CONTAINER_NAME="${CONTAINER_NAME:-moodle-$SISTEM_NAME}"
+DOCKER_COMPOSE_DIR="${DOCKER_COMPOSE_DIR:-/home/$USER/workspace/docker/$DOCKER_VERSION}"
+MOODLE_LOCAL_SITE="${MOODLE_LOCAL_SITE:-www/$SISTEM_NAME}"
+MOODLE_ROOT_IN_CONTAINER="${MOODLE_ROOT_IN_CONTAINER:-/home/moodle/$MOODLE_LOCAL_SITE}"
+CONTAINER_USER="${CONTAINER_USER:-moodle}"
+PHPUNIT_PREFIX="${PHPUNIT_PREFIX:-phpu_}"
+PHPUNIT_DATAROOT="${PHPUNIT_DATAROOT:-/home/moodle/moodledata/${PHPUNIT_PREFIX}$SISTEM_NAME}"
 PLUGIN_COMPONENT="local_tutores"
 PLUGIN_RELPATH="local/tutores"
 
@@ -68,7 +72,7 @@ exec_as_root() {
 }
 
 exec_as_moodle() {
-    docker exec -e XDEBUG_MODE=off -u moodle "$CONTAINER_NAME" bash -c "$1"
+    docker exec -e XDEBUG_MODE=off -u "$CONTAINER_USER" "$CONTAINER_NAME" bash -c "$1"
 }
 
 get_moodle_build() {
@@ -114,49 +118,46 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Garantir que o Composer está instalado no container
-# ---------------------------------------------------------------------------
-log "Verificando Composer..."
-
-COMPOSER_OK=$(exec_as_root "composer --version 2>/dev/null | grep -q 'Composer version 1\.' && echo yes || echo no" 2>/dev/null || echo "no")
-
-if [ "$COMPOSER_OK" != "yes" ]; then
-    log "Composer 1.x não encontrado. Instalando..."
-    exec_as_root "
-        curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &&
-        php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --1 &&
-        rm /tmp/composer-setup.php
-    "
-    log "Composer 1.x instalado."
-fi
-
-# ---------------------------------------------------------------------------
-# 3. Garantir extensões PHP necessárias para o PHPUnit
-# ---------------------------------------------------------------------------
-log "Verificando extensões PHP necessárias para o PHPUnit..."
-
-XMLWRITER_OK=$(exec_as_root "php -m 2>/dev/null | grep -q xmlwriter && echo yes || echo no")
-
-if [ "$XMLWRITER_OK" != "yes" ]; then
-    log "Instalando extensão php7-xmlwriter (necessária para phpunit/php-code-coverage)..."
-    exec_as_root "apk add --no-cache php7-xmlwriter"
-    log "php7-xmlwriter instalado."
-fi
-
-# ---------------------------------------------------------------------------
-# 4. Instalar dependências de desenvolvimento do Moodle (phpunit etc.)
+# 2. Dependencias de desenvolvimento do Moodle (phpunit etc.)
+#
+# A verificacao do vendor/ vem primeiro de proposito: quando ele ja' existe nao ha' o
+# que provisionar, e o script deixa de tentar instalar Composer 1 e extensoes num
+# ambiente que ja' esta' pronto -- no php83 isso significava baixar um Composer
+# incompativel com PHP 8.3 sem necessidade nenhuma.
 # ---------------------------------------------------------------------------
 log "Verificando dependências Composer do Moodle (vendor/)..."
 
 VENDOR_EXISTS=$(exec_as_moodle "test -f '$MOODLE_ROOT_IN_CONTAINER/vendor/bin/phpunit' && echo yes || echo no" 2>/dev/null || echo "no")
 
-if [ "$VENDOR_EXISTS" != "yes" ]; then
-    log "Dependências ausentes. Preparando diretório e executando 'composer install'..."
+if [ "$VENDOR_EXISTS" = "yes" ]; then
+    log "Dependências já instaladas."
+else
+    log "Dependências ausentes. Provisionando o container..."
+
+    COMPOSER_OK=$(exec_as_root "composer --version 2>/dev/null | grep -q 'Composer version 1\.' && echo yes || echo no" 2>/dev/null || echo "no")
+
+    if [ "$COMPOSER_OK" != "yes" ]; then
+        log "Composer 1.x não encontrado. Instalando..."
+        exec_as_root "
+            curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php &&
+            php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer --1 &&
+            rm /tmp/composer-setup.php
+        "
+        log "Composer 1.x instalado."
+    fi
+
+    XMLWRITER_OK=$(exec_as_root "php -m 2>/dev/null | grep -q xmlwriter && echo yes || echo no")
+
+    if [ "$XMLWRITER_OK" != "yes" ]; then
+        log "Instalando extensão xmlwriter (necessária para phpunit/php-code-coverage)..."
+        exec_as_root "apk add --no-cache php7-xmlwriter"
+        log "xmlwriter instalado."
+    fi
 
     # Garante que o diretório vendor/ existe com ownership correto
     exec_as_root "
         mkdir -p '$MOODLE_ROOT_IN_CONTAINER/vendor' &&
-        chown -R moodle:moodle '$MOODLE_ROOT_IN_CONTAINER/vendor'
+        chown -R $CONTAINER_USER:$CONTAINER_USER '$MOODLE_ROOT_IN_CONTAINER/vendor'
     "
 
     # Configura git safe.directory para suprimir aviso de ownership
@@ -172,7 +173,7 @@ if [ "$VENDOR_EXISTS" != "yes" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Garantir que o PHPUnit está configurado no config.php
+# 3. Garantir que o PHPUnit está configurado no config.php
 # ---------------------------------------------------------------------------
 log "Verificando configuração PHPUnit no config.php..."
 
@@ -200,7 +201,7 @@ if [ "$PHPUNIT_CONFIGURED" != "yes" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Inicializar (ou reinicializar) as tabelas PHPUnit no banco de dados
+# 4. Inicializar (ou reinicializar) as tabelas PHPUnit no banco de dados
 # ---------------------------------------------------------------------------
 PHPUNIT_XML="$MOODLE_ROOT_IN_CONTAINER/phpunit.xml"
 PHPUNIT_VERSION_MARKER="$PHPUNIT_DATAROOT/moodle_build_marker"
@@ -252,7 +253,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6. Executar os testes
+# 5. Executar os testes
 # ---------------------------------------------------------------------------
 echo ""
 log "============================================================"
@@ -275,21 +276,16 @@ if [ -n "$TEST_FILE" ]; then
         php vendor/bin/phpunit --colors=always '$TEST_PATH'
     "
 else
-    log "Diretório: $PLUGIN_TEST_DIR"
+    # Roda a suite do componente que o Moodle gera no phpunit.xml, e nao arquivo por
+    # arquivo: as classes de teste (local_tutores_categoria_testcase etc.) nao batem com
+    # o nome do arquivo (categoria_test.php), e o PHPUnit 9 do Moodle 4.x, ao receber o
+    # caminho de um arquivo, procura a classe pelo nome dele e falha com "could not be found".
+    TEST_SUITE="${PLUGIN_COMPONENT}_testsuite"
+    log "Suíte: $TEST_SUITE ($PLUGIN_TEST_DIR)"
     echo ""
     exec_as_root "
-        set -e
-        cd '$MOODLE_ROOT_IN_CONTAINER'
-        TEST_FILES=\$(find '$PLUGIN_TEST_DIR' -type f -name '*_test.php' | sort)
-
-        if [ -z \"\$TEST_FILES\" ]; then
-            echo '[ERROR] Nenhum arquivo *_test.php encontrado em $PLUGIN_TEST_DIR' >&2
-            exit 1
-        fi
-
-        for file in \$TEST_FILES; do
-            php vendor/bin/phpunit --colors=always \"\$file\"
-        done
+        cd '$MOODLE_ROOT_IN_CONTAINER' &&
+        php vendor/bin/phpunit --colors=always --testsuite '$TEST_SUITE'
     "
 fi
 
